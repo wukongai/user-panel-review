@@ -81,7 +81,7 @@ def prepare_run(tmp_path: Path, extra: list[str] | None = None) -> Path:
         "--apply",
     ]
     command.extend(extra or [])
-    completed = subprocess.run(command, check=True, text=True, capture_output=True)
+    completed = subprocess.run(command, check=True, text=True, encoding="utf-8", capture_output=True)
     assert json.loads(completed.stdout)["run_id"] == "test-run"
     return output / "test-run"
 
@@ -220,6 +220,7 @@ class UserPanelReviewTests(unittest.TestCase):
                 ],
                 check=True,
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
             )
             self.assertFalse(json.loads(completed.stdout)["apply"])
@@ -412,6 +413,7 @@ class UserPanelReviewTests(unittest.TestCase):
                 ],
                 check=True,
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
             )
             report = report_path.read_text(encoding="utf-8")
@@ -433,6 +435,7 @@ class UserPanelReviewTests(unittest.TestCase):
                 ],
                 check=True,
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
             )
             snapshot = (output / "injection-run" / "source-snapshot.md").read_text(encoding="utf-8")
@@ -453,6 +456,7 @@ class UserPanelReviewTests(unittest.TestCase):
                     "--persona", "ai-01-scroller",
                 ],
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
                 env=env,
             )
