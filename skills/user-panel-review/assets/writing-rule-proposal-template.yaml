@@ -1,0 +1,15 @@
+rule_id: <唯一标识>
+title: <简短标题>
+niche: <内容领域>
+content_types: []
+funnel_layers: []
+persona_ids: []
+trigger_conditions: []
+rule: <候选规则>
+anti_example: <反例>
+correct_pattern: <正确模式>
+origin_run: <运行标识>
+origin_report: <绝对路径或仓库相对路径>
+persona_provenance: synthetic
+evidence_strength: low
+status: proposed

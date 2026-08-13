@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "methods": {
+    "article-experience-core-v1": {
+      "id": "article-experience-core-v1",
+      "version": "1.0.0",
+      "status": "candidate",
+      "object_scope": "article",
+      "source_type": "maintainer-synthesis",
+      "source_note": "从 user-panel-review v0.1 评审协议中的基础文章体验问题显式拆分。",
+      "default": true,
+      "file": "article-experience-core-v1.md",
+      "dimensions": [
+        {"id": "opening-relevance", "label": "开头相关性", "theory": "文章体验基础方法"},
+        {"id": "job-fit", "label": "任务匹配", "theory": "文章体验基础方法"},
+        {"id": "comprehension", "label": "理解路径", "theory": "文章体验基础方法"},
+        {"id": "trust", "label": "信任摩擦", "theory": "文章体验基础方法"},
+        {"id": "continue-or-reject", "label": "继续或拒绝", "theory": "文章体验基础方法"},
+        {"id": "preserve", "label": "应保留优势", "theory": "文章体验基础方法"}
+      ],
+      "forbidden_claims": ["CTR prediction", "completion prediction", "conversion prediction"]
+    },
+    "propagation-dbs-v1": {
+      "id": "propagation-dbs-v1",
+      "version": "1.0.0",
+      "status": "candidate",
+      "object_scope": "article",
+      "source_type": "theory-informed-method",
+      "source_note": "整理自本机 dbs-resonate 与 dbs-spread 的传播心理五维方法；不包含原 Skill 的导航和平台预测触发文案。",
+      "default": false,
+      "file": "propagation-dbs-v1.md",
+      "dimensions": [
+        {"id": "silence-release", "label": "沉默解除", "theory": "沉默的螺旋"},
+        {"id": "gratification-motive", "label": "满足动机", "theory": "使用与满足理论"},
+        {"id": "stance-frame", "label": "立场框架", "theory": "框架理论"},
+        {"id": "sharing-entry", "label": "传播入口", "theory": "两级传播理论"},
+        {"id": "belief-structure", "label": "信念结构", "theory": "认知一致性理论"}
+      ],
+      "forbidden_claims": ["CTR prediction", "completion prediction", "recommendation prediction", "purchase prediction", "conversion prediction"]
+    }
+  }
+}

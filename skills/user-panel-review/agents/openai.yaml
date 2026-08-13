@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI 用户评审团"
+  short_description: "用多个隔离 Persona Agent 对文章做可追溯的模拟用户评审"
+  default_prompt: "使用 $user-panel-review 让多个隔离 Persona Agent 评审这篇文章，并生成可追溯的模拟用户报告。"

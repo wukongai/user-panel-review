@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/user-panel-review/synthesis.schema.json",
+  "title": "用户评审面板汇总结果",
+  "type": "object",
+  "required": [
+    "schema_version", "run_id", "source_sha256", "status", "utility_claim",
+    "completed_worker_ids", "failed_worker_ids", "consensus", "divergence", "minority",
+    "strategic_non_target_rejection", "preserve", "professional_risks",
+    "human_validation_hypotheses", "writing_rule_proposals", "limitations", "method_findings"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "status": {"enum": ["partial", "completed", "failed"]},
+    "utility_claim": {"const": "not-evaluated"},
+    "completed_worker_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "failed_worker_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "method_findings": {"type": "array"}
+  },
+  "additionalProperties": true
+}
