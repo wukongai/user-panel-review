@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/user-review/audience-map.schema.json",
+  "title": "用户评审内容线与画像映射",
+  "type": "object",
+  "required": ["schema_version", "content_lines"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "content_lines": {"type": "object", "minProperties": 1}
+  }
+}

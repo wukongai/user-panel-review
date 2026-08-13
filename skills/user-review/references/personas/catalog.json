@@ -1,0 +1,61 @@
+{
+  "schema_version": "2.0",
+  "personas": {
+    "ai-01-scroller": {
+      "file": "ai-01-scroller.md", "version": "0.1.0", "name": "随手浏览 AI 内容的人", "summary": "注意窗口很短，需要先看到与日常工作的关系。",
+      "domains": ["ai"], "content_types": ["explainer", "tutorial"], "platforms": ["wechat", "any"], "content_relationship": "core", "knowledge_stage": "aware",
+      "reading_context": "在移动端信息流短暂浏览", "job_to_be_done": "快速判断 AI 是否能减少今天的工作阻力", "pains": ["术语先于价值", "抽象趋势叙事"],
+      "trust_signals": ["熟悉场景", "具体前后对比"], "rejection_signals": ["隐藏前置条件", "空泛口号"], "language_cues": ["直接", "口语化"],
+      "provenance": "operator_hypothesis", "confidence": "low", "validation_status": "unvalidated", "lifecycle": "reusable"
+    },
+    "ai-02-anxious-mid": {
+      "file": "ai-02-anxious-mid.md", "version": "0.1.0", "name": "担心被 AI 落下的中段用户", "summary": "有焦虑和基础认知，需要低风险的行动路径。",
+      "domains": ["ai"], "content_types": ["explainer", "opinion"], "platforms": ["wechat", "any"], "content_relationship": "core", "knowledge_stage": "problem_solving",
+      "reading_context": "工作间隙寻找可跟上的实践", "job_to_be_done": "找到不推翻现有流程的入门行动", "pains": ["工具变化太快", "害怕操作失误"],
+      "trust_signals": ["可逆步骤", "明确边界"], "rejection_signals": ["制造焦虑", "一步到位承诺"], "language_cues": ["务实", "克制"],
+      "provenance": "operator_hypothesis", "confidence": "low", "validation_status": "unvalidated", "lifecycle": "reusable"
+    },
+    "ai-03-seeker": {
+      "file": "ai-03-seeker.md", "version": "0.1.0", "name": "主动寻找 AI 方案的人", "summary": "已经在找方案，会追问可执行性和适用条件。",
+      "domains": ["ai"], "content_types": ["tutorial", "case-study"], "platforms": ["wechat", "any"], "content_relationship": "adjacent", "knowledge_stage": "problem_solving",
+      "reading_context": "带着具体问题检索和收藏", "job_to_be_done": "判断方案是否值得试用", "pains": ["缺少完整步骤", "案例无法复现"],
+      "trust_signals": ["操作细节", "限制条件"], "rejection_signals": ["省略成本", "只展示结果"], "language_cues": ["追问", "具体"],
+      "provenance": "operator_hypothesis", "confidence": "low", "validation_status": "unvalidated", "lifecycle": "reusable"
+    },
+    "ai-04-power-user": {
+      "file": "ai-04-power-user.md", "version": "0.1.0", "name": "AI 深度使用者", "summary": "熟悉工具，会挑战论证、边界和技术准确性。",
+      "domains": ["ai"], "content_types": ["tutorial", "opinion", "case-study"], "platforms": ["wechat", "any"], "content_relationship": "challenge", "knowledge_stage": "experienced",
+      "reading_context": "快速扫描是否有新增量", "job_to_be_done": "发现新的做法或论证漏洞", "pains": ["重复常识", "技术细节失真"],
+      "trust_signals": ["可复核证据", "明确取舍"], "rejection_signals": ["夸大能力", "概念混用"], "language_cues": ["简洁", "质疑"],
+      "provenance": "operator_hypothesis", "confidence": "low", "validation_status": "unvalidated", "lifecycle": "reusable"
+    },
+    "psy-01-commuter": {
+      "file": "psy-01-commuter.md", "version": "0.1.0", "name": "通勤中阅读心理内容的人", "summary": "希望迅速理解自己的体验，不想先学理论。",
+      "domains": ["psychology"], "content_types": ["explainer", "self-help"], "platforms": ["wechat", "any"], "content_relationship": "core", "knowledge_stage": "aware",
+      "reading_context": "通勤时碎片化阅读", "job_to_be_done": "给近期体验找到可理解的说法", "pains": ["理论过密", "被教育感"],
+      "trust_signals": ["生活场景", "温和边界"], "rejection_signals": ["诊断式标签", "绝对化结论"], "language_cues": ["自然", "不评判"],
+      "provenance": "operator_hypothesis", "confidence": "low", "validation_status": "unvalidated", "lifecycle": "reusable"
+    },
+    "psy-02-caregiver": {
+      "file": "psy-02-caregiver.md", "version": "0.1.0", "name": "长期照顾他人的人", "summary": "关注建议是否现实、是否增加内疚和额外负担。",
+      "domains": ["psychology"], "content_types": ["self-help", "opinion"], "platforms": ["wechat", "any"], "content_relationship": "core", "knowledge_stage": "problem_solving",
+      "reading_context": "在有限精力下寻找支持", "job_to_be_done": "找到能在现实约束中使用的小行动", "pains": ["建议成本过高", "责任被简化"],
+      "trust_signals": ["承认约束", "小步行动"], "rejection_signals": ["责备读者", "万能建议"], "language_cues": ["体谅", "现实"],
+      "provenance": "operator_hypothesis", "confidence": "low", "validation_status": "unvalidated", "lifecycle": "reusable"
+    },
+    "psy-03-relation-seeker": {
+      "file": "psy-03-relation-seeker.md", "version": "0.1.0", "name": "带着关系困惑寻找答案的人", "summary": "会把文章映射到一段具体关系并寻找可验证解释。",
+      "domains": ["psychology"], "content_types": ["explainer", "self-help"], "platforms": ["wechat", "any"], "content_relationship": "adjacent", "knowledge_stage": "problem_solving",
+      "reading_context": "冲突后搜索关系解释", "job_to_be_done": "理解互动模式并决定下一步", "pains": ["贴标签", "只讲一方责任"],
+      "trust_signals": ["多种可能解释", "沟通示例"], "rejection_signals": ["替读者下诊断", "煽动决裂"], "language_cues": ["具体", "审慎"],
+      "provenance": "operator_hypothesis", "confidence": "low", "validation_status": "unvalidated", "lifecycle": "reusable"
+    },
+    "psy-04-learner": {
+      "file": "psy-04-learner.md", "version": "0.1.0", "name": "系统学习心理知识的人", "summary": "关注概念边界、证据层级和学习价值。",
+      "domains": ["psychology"], "content_types": ["explainer", "opinion"], "platforms": ["wechat", "any"], "content_relationship": "challenge", "knowledge_stage": "experienced",
+      "reading_context": "作为持续学习材料阅读", "job_to_be_done": "建立不误导实践的概念框架", "pains": ["概念偷换", "证据不足"],
+      "trust_signals": ["限定语", "来源边界"], "rejection_signals": ["伪科学语气", "把相关当因果"], "language_cues": ["准确", "追问依据"],
+      "provenance": "operator_hypothesis", "confidence": "low", "validation_status": "unvalidated", "lifecycle": "reusable"
+    }
+  }
+}

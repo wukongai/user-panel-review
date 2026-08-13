@@ -1,0 +1,23 @@
+{
+  "schema_version": "2.0",
+  "run_id": "<run-id>",
+  "worker_result_id": "<result-id>",
+  "reviewer_kind": "persona",
+  "source_sha256": "<sha256>",
+  "persona_id": "<persona-id>",
+  "persona_version": "<version>",
+  "persona_provenance": "synthetic",
+  "status": "completed",
+  "coverage": {"mode": "full", "covered_sections": [], "omitted_sections": []},
+  "synthetic_signal": "medium",
+  "confidence": "low",
+  "three_second_reaction": "",
+  "relevance": "",
+  "frictions": [],
+  "trust_triggers": [],
+  "rejection_triggers": [],
+  "preserve": [],
+  "questions": [],
+  "next_step_reaction": "",
+  "limitations": []
+}

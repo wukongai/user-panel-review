@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/user-review/persona.schema.json",
+  "title": "用户评审长期画像",
+  "type": "object",
+  "required": [
+    "id", "version", "name", "summary", "domains", "content_types", "platforms",
+    "content_relationship", "knowledge_stage", "reading_context", "job_to_be_done",
+    "pains", "trust_signals", "rejection_signals", "language_cues", "provenance",
+    "confidence", "validation_status", "lifecycle"
+  ],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "content_relationship": {"enum": ["core", "adjacent", "challenge", "non_target"]},
+    "knowledge_stage": {"enum": ["unaware", "aware", "problem_solving", "experienced"]},
+    "provenance": {"enum": ["grounded", "inferred", "operator_hypothesis", "synthetic"]},
+    "confidence": {"enum": ["low", "medium", "high"]},
+    "validation_status": {"enum": ["unvalidated", "partially_validated", "validated"]},
+    "lifecycle": {"enum": ["candidate", "reusable", "retired"]}
+  }
+}

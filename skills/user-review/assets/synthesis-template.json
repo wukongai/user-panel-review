@@ -1,0 +1,17 @@
+{
+  "schema_version": "2.0",
+  "run_id": "<run-id>",
+  "source_sha256": "<sha256>",
+  "status": "completed",
+  "utility_claim": "not-evaluated",
+  "completed_worker_ids": [],
+  "failed_worker_ids": [],
+  "consensus": [],
+  "divergence": [],
+  "minority": [],
+  "strategic_non_target_rejection": [],
+  "preserve": [],
+  "human_validation_hypotheses": [],
+  "writing_rule_proposals": [],
+  "limitations": []
+}

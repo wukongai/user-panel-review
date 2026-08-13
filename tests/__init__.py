@@ -1,1 +1,1 @@
-"""Repository-level tests for user-panel-review."""
+"""user-review 的仓库级测试。"""

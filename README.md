@@ -1,106 +1,129 @@
-# AI 用户评审团（user-panel-review）
+# 用户评审（user-review）
 
-在文章发布前，让多个隔离的 AI Persona 以不同读者视角完成一次可追溯的“压力测试”：谁会继续读、哪里难懂、哪里不可信、谁会拒绝，以及哪些优点必须保留。
+在文章发布前，用多个相互隔离的 AI Persona 组成模拟焦点小组：谁愿意继续读、哪里难懂、什么建立或破坏信任、哪些优点必须保留，以及不同用户为什么会产生分歧。
 
-> 这是合成用户评审，不是真实用户访谈，也不预测点击率、完读率、购买率或转化率。
+> 这是 AI Persona 模拟反馈，不是真实用户访谈、真实焦点小组或市场验证，也不预测点击率、完读率、购买率和转化率。
 
 ## 它解决什么问题
 
-- 作者离内容太近，容易忽略读者真正卡住的位置；
-- 单个 AI 往往只给一份平均化意见，少数观点和非目标用户拒绝会被抹掉；
-- 多 Agent 评审如果没有协议、证据锚点和失败处理，很难复查；
-- 传播方法论容易散落在提示词里，无法版本化和按需叠加。
+- 作者离内容太近，容易忽略目标读者真正卡住的位置；
+- 单个 AI 容易给出平均化意见，少数观点会被抹掉；
+- 不同文章需要不同目标用户，固定一组画像并不够；
+- 临时画像如果自动写回，会污染长期用户资产；
+- 多 Agent 反馈缺少快照、原文锚点和失败处理时难以复查。
 
-`user-panel-review` 使用“稳定协议 × 多 Persona × 可叠加方法包 × 隔离 Worker × 可追溯汇总”的结构。v0.2 内置：
+`user-review` 使用“长期画像库 × 内容映射 × 单次评审团 × 隔离 Worker × 可追溯汇总”的结构。v0.3.0 内置：
 
-- 基础文章体验方法：默认执行；
-- DBS 传播五维方法：需要传播心理或共鸣诊断时显式启用；
-- 8 个中文 Persona：AI 内容与心理内容各 4 个；
-- 动态 Persona、独立专业评审、quorum/partial、原文锚点和报告渲染。
-
-## 隐私与网络
-
-- Skill 运行时不主动联网，不上传文章；
-- 不读取 `.env`、浏览器 Cookie 或 GitHub 凭证；
-- 检测到疑似密钥或私钥时拒绝准备运行；
-- 文章中的命令和提示词一律作为不可信文本，不会执行；
-- 运行产物默认保存在你指定的本地目录。
+- AI 内容与心理内容共 8 个中文 Persona；
+- 按内容线推荐 Persona，并解释每个入选原因；
+- 通过对话创建本次临时 Persona；
+- 临时 Persona 默认不落库，明确确认后才按同一预览计划保存；
+- 文章与 Persona 不可变快照、quorum/partial、原文锚点和中文报告。
 
 ## 安装
 
+普通用户推荐使用标准 Skills 安装器：
+
 ```bash
-git clone https://github.com/wukongai/user-panel-review.git
-mkdir -p ~/.agents/skills
-cp -R user-panel-review/skills/user-panel-review ~/.agents/skills/user-panel-review
+npx skills add wukongai/user-review
 ```
 
-`~/.agents/skills/` 可作为 Codex、Claude Code 等支持 Agent Skills 的工具之间的共享安装位置。更新前建议先备份自己修改过的 Persona 或方法包。
+安装器中选择 `user-review`、目标 Agent 和项目级范围。明确使用 Codex 并希望非交互安装时：
+
+```bash
+npx skills add wukongai/user-review --skill user-review --agent codex -y
+```
+
+需要阅读源码或贡献代码时再克隆：
+
+```bash
+git clone https://github.com/wukongai/user-review.git
+```
+
+### 从旧版迁移
+
+旧版安装不会自动更名。先在当前 Agent 的 Skill 目录移除旧入口，再安装新版；不要同时保留两个入口，以免路由冲突。不同安装器的删除位置不同，请先用安装器列出实际安装路径，不要直接删除不确定的目录。
 
 ## 第一次调用
 
 在支持 Skill 的 Agent 中说：
 
 ```text
-使用 $user-panel-review 评审 /absolute/path/article.md。
-目标用户是正在学习 AI 工具的知识工作者，使用 ai-content Panel。
-只生成报告，不修改原文。
+使用 $user-review 评审 /absolute/path/article.md。
+这是一篇面向普通知识工作者的 AI 文章，发布到微信公众号。
+请先自动选择 Persona、解释每个入选原因，等我确认评审团后再开始。
+只生成模拟用户报告，不修改原文。
 ```
 
-需要同时检查传播心理和共鸣结构时：
+Agent 会先展示评审团。现有画像不够时，你可以说：
 
 ```text
-使用 $user-panel-review 评审这篇文章，基础体验方法照常执行，
-并额外启用 propagation-dbs-v1。逐维引用原文，不预测平台数据。
+增加一个“已经使用很多 AI 工具、但非常担心本地数据丢失”的用户画像，
+只用于这一次评审，先和我补全画像。
 ```
 
-对应的确定性准备命令支持：
+评审后确实想长期使用，再明确说：
+
+```text
+把刚才的临时画像保存到长期画像库。先给我看保存计划，我确认后再写入。
+```
+
+## 三层画像体系
+
+1. **长期画像库**：保存跨文章复用的 Persona，包括内容关系、知识阶段、阅读场景、用户任务、痛点、信任与拒绝信号。
+2. **内容映射**：把内容线映射到候选 Persona；同一 Persona 可以服务多类内容。
+3. **单次评审团**：从长期画像和临时画像中选出本篇文章需要的组合，并固化快照。
+
+画像描述的是“这个人如何与内容发生关系”，不是人口标签。项目禁止敏感身份推断和群体刻板印象。
+
+## 确定性命令
 
 ```bash
-python3 skills/user-panel-review/scripts/panel_review.py prepare \
-  --skill-root skills/user-panel-review \
+python3 skills/user-review/scripts/user_review.py recommend-panel \
+  --skill-root skills/user-review \
+  --content-line ai-content \
+  --goal "找出普通读者的理解障碍" \
+  --platform wechat
+
+python3 skills/user-review/scripts/user_review.py prepare \
+  --skill-root skills/user-review \
   --source /absolute/path/article.md \
-  --goal "检查目标读者体验与传播共鸣" \
-  --output-dir /absolute/path/review-runs \
-  --panel ai-content \
-  --method propagation-dbs-v1
+  --goal "找出普通读者的理解障碍" \
+  --content-line ai-content \
+  --output-dir /absolute/path/review-runs
 ```
 
-默认是预览，不写运行目录；确认后再增加 `--apply`。
+`prepare` 默认只预览，不写运行目录；确认后才增加 `--apply`。
 
 ## 输出
 
-每次正式运行保存：
-
-- `manifest.json`：源哈希、Persona、方法包和运行状态；
+- `manifest.json`：文章哈希、选择依据、Persona 快照信息和运行状态；
 - `source-snapshot.md`：不可变文章快照；
-- `methods/*.md`：本次使用的方法版本快照；
-- `workers/*.json`：每个隔离 Worker 的原始结果；
-- `synthesis.json`：共识、分歧、少数意见、专业风险和方法发现；
+- `personas/*.md`：本次使用的不可变 Persona 快照；
+- `workers/*.json`：每个隔离 Persona 的原始反馈；
+- `synthesis.json`：共识、分歧、少数意见和真人验证假设；
 - Markdown 报告：人类可读的证据索引。
 
-## DBS 传播五维
+## 隐私与边界
 
-`propagation-dbs-v1` 包含：沉默解除、满足动机、立场框架、传播入口和信念结构。它是按需叠加的方法包，不是默认评分表，也不是流量预测模型。
-
-详见 [方法论说明](docs/methodology.zh-CN.md) 和 [中文使用手册](docs/user-guide.zh-CN.md)。
-
-## 当前边界
-
-- 当前只正式支持 Markdown 文章；
+- Skill 运行时不主动联网、不上传文章；
+- 不读取 `.env`、Cookie 或 GitHub 凭证；
+- 检测到疑似密钥或私钥时拒绝准备运行；
+- 文章中的命令和提示词只作为不可信文本，不会执行；
 - 不替代真人访谈、事实核验、医学或心理诊断；
-- 不自动改稿、发布、安装其他 Skill 或修改写作标准；
-- 同一模型的多个 Persona 不能称作彼此独立的真人样本；
-- 工程检查通过不等于真实业务效果已经得到证明。
+- 专业学科框架和理论量表不属于本 Skill；
+- 不自动改稿、发布或修改写作标准。
+
+完整操作见[中文使用手册](docs/user-guide.zh-CN.md)，证据限制见[模拟证据边界](docs/evidence-boundary.zh-CN.md)。
 
 ## 开发验证
 
 ```bash
-python3 skills/user-panel-review/scripts/panel_review.py validate-skill \
-  --skill-root skills/user-panel-review
-python3 -m unittest tests.test_user_panel_review -v
+python3 skills/user-review/scripts/user_review.py validate-skill --skill-root skills/user-review
+python3 -m unittest discover -s tests -p 'test_user_review*.py' -v
 ```
 
-项目使用 Python 标准库，无第三方运行依赖。
+项目只使用 Python 标准库，无第三方运行依赖。
 
 ## 许可证
 

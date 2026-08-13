@@ -1,9 +1,9 @@
 # 发布说明
 
-1. 从 Content-factory 的维护源生成白名单发行切片；
+1. 从正式维护源生成白名单发行切片；
 2. 检查公开包不含绝对用户路径、私人文章、凭证和运行产物；
-3. 运行 `validate-skill` 和完整 unittest；
-4. 在干净目录完成一次安装验证；
+3. 运行 `skills/user-review/scripts/user_review.py validate-skill` 和完整 unittest；
+4. 在干净目录从公开仓库安装 `user-review`，完成画像推荐、临时画像和文章评审验证；
 5. 人工检查中文 README、能力边界和版本记录；
 6. 提交、推送、tag 和 GitHub Release 分别确认。
 

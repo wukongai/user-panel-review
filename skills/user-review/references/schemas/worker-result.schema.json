@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/user-review/worker-result.schema.json",
+  "title": "用户评审 Persona Worker 结果",
+  "type": "object",
+  "required": [
+    "schema_version", "run_id", "worker_result_id", "reviewer_kind", "source_sha256",
+    "persona_id", "persona_version", "persona_provenance", "status", "coverage",
+    "synthetic_signal", "confidence", "three_second_reaction", "relevance", "frictions",
+    "trust_triggers", "rejection_triggers", "preserve", "questions", "next_step_reaction", "limitations"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0"},
+    "reviewer_kind": {"const": "persona"},
+    "status": {"const": "completed"}
+  }
+}

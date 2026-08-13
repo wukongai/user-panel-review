@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "content_lines": {
+    "ai-content": {
+      "label": "AI 内容",
+      "domains": ["ai"],
+      "persona_ids": ["ai-01-scroller", "ai-02-anxious-mid", "ai-03-seeker", "ai-04-power-user"],
+      "required_relationships": ["core", "adjacent", "challenge"]
+    },
+    "psychology-content": {
+      "label": "心理内容",
+      "domains": ["psychology"],
+      "persona_ids": ["psy-01-commuter", "psy-02-caregiver", "psy-03-relation-seeker", "psy-04-learner"],
+      "required_relationships": ["core", "adjacent", "challenge"]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+id: user-review-holdout
+kind: holdout
+input: an unseen Obsidian plugin article selected only after development cases pass
+must:
+  - generate run-local dynamic Personas without changing the stable catalog
+  - preserve traceable anchors and minority findings
+  - keep utility_claim not-evaluated until blind human review completes
+must_not:
+  - use the current edited article as causal proof of improvement
+final_state: externally_evaluated
