@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -34,6 +35,7 @@ LOCALIZED_RESOURCE_FILES = (
     "references/personas/psy-02-caregiver.md",
     "references/personas/psy-03-relation-seeker.md",
     "references/personas/psy-04-learner.md",
+    "references/regression/windows-cli-utf8.md",
 )
 
 LOCALIZED_UI_MARKERS = {
@@ -442,6 +444,8 @@ class UserPanelReviewTests(unittest.TestCase):
             tmp_path = Path(raw_tmp)
             source = tmp_path / "secret.md"
             source.write_text("token: sk-" + "abcdefghijklmnop123456", encoding="utf-8")
+            env = os.environ.copy()
+            env["PYTHONIOENCODING"] = "ascii:backslashreplace"
             completed = subprocess.run(
                 [
                     sys.executable, str(SCRIPT), "prepare", "--skill-root", str(SKILL_ROOT),
@@ -450,6 +454,7 @@ class UserPanelReviewTests(unittest.TestCase):
                 ],
                 text=True,
                 capture_output=True,
+                env=env,
             )
             self.assertEqual(completed.returncode, 2)
             self.assertIn("疑似包含凭证或私钥", completed.stderr)

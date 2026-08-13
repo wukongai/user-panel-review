@@ -41,6 +41,14 @@ class ValidationError(ValueError):
     """当产物违反公开契约时抛出。"""
 
 
+def configure_cli_streams() -> None:
+    """让 Windows 等宿主稳定输出未转义的中文 JSON。"""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="strict")
+
+
 def read_text(path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8")
@@ -726,6 +734,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_cli_streams()
     args = build_parser().parse_args(argv)
     try:
         if args.command == "validate-skill":
