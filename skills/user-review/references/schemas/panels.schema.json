@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "user-review-panels/v1",
+  "type": "object",
+  "required": ["schema", "default_panel", "panels"],
+  "properties": {
+    "schema": {"const": "user-review-panels/v1"},
+    "default_panel": {"type": "string"},
+    "panels": {"type": "object", "minProperties": 1}
+  }
+}

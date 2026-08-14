@@ -1,5 +1,16 @@
 # 更新记录
 
+## 2.0.0 - 2026-08-15
+
+- 产品升级为独立的长期用户画像与模拟焦点小组系统；
+- 新增只读示范 Workspace 与安装目录之外的私人 Audience Workspace；
+- Persona 正式支持新增、更新、派生、停用和恢复；
+- 新增默认 Panel、场景 Panel 和可解释选团；
+- 所有长期变更使用不可变 Preview / Apply、哈希校验、备份、回滚和 Change Record；
+- 文章运行新增 Workspace、Panel 与 Stimulus Package 快照，同时保留 0.3 Worker 接口；
+- 旧的安装目录画像写入命令改为拒绝并提供迁移提示；
+- 重写中文 README、使用手册、创建引导和 0.3 → 2.0 迁移说明。
+
 ## 0.3.0 - 2026-08-14
 
 - 产品与 Skill 名称统一为 `user-review`，公开仓库同步改名；

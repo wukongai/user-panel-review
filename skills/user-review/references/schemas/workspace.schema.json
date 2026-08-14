@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "user-review-workspace/v1",
+  "type": "object",
+  "required": ["schema", "id", "name", "storage", "offering", "audience_promise", "persona_catalog", "panels_file"],
+  "properties": {
+    "schema": {"const": "user-review-workspace/v1"},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"},
+    "name": {"type": "string", "minLength": 1},
+    "storage": {"enum": ["builtin_read_only", "private"]},
+    "offering": {"type": "string", "minLength": 1},
+    "audience_promise": {"type": "string", "minLength": 1},
+    "persona_catalog": {"type": "string"},
+    "panels_file": {"type": "string"}
+  },
+  "additionalProperties": true
+}

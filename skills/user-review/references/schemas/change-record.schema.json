@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "user-review-change-record/v1",
+  "type": "object",
+  "required": ["schema", "record_id", "operation", "applied_at", "plan_sha256", "changed_files", "backup_dir"],
+  "properties": {
+    "schema": {"const": "user-review-change-record/v1"},
+    "record_id": {"type": "string"},
+    "operation": {"type": "string"},
+    "applied_at": {"type": "string"},
+    "plan_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "changed_files": {"type": "array"},
+    "backup_dir": {"type": "string"}
+  }
+}

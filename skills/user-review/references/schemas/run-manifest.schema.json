@@ -3,12 +3,16 @@
   "$id": "https://example.invalid/user-review/run-manifest.schema.json",
   "title": "用户评审运行清单",
   "type": "object",
-  "required": ["schema_version", "run_id", "created_at", "status", "research_goal", "source", "selection", "panel", "evidence"],
+  "required": ["schema_version", "run_id", "created_at", "status", "research_goal", "source", "selection", "stimulus", "panel", "evidence"],
   "properties": {
     "schema_version": {"const": "2.0"},
     "run_id": {"type": "string"},
     "status": {"enum": ["planned", "running", "partial", "completed", "failed"]},
     "selection": {"type": "object", "required": ["content_line", "explainable"]},
+    "stimulus": {
+      "type": "object",
+      "required": ["schema", "object_type", "modality", "protocol", "research_goal", "source_hash", "evidence_label"]
+    },
     "panel": {"type": "object", "required": ["planned_count", "worker_count", "quorum", "personas"]}
   }
 }

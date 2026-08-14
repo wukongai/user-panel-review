@@ -1,4 +1,4 @@
 interface:
   display_name: "用户评审"
-  short_description: "用可管理的目标用户画像组成模拟焦点小组评审内容"
-  default_prompt: "使用 $user-review 为这篇文章自动选择目标用户画像，预览评审团后生成可追溯的模拟用户反馈报告。"
+  short_description: "维护长期目标受众，用模拟焦点小组评审文章"
+  default_prompt: "使用 $user-review 读取我的 Audience Workspace，为这篇文章按场景推荐目标用户 Panel；先预览入选理由，确认后生成可追溯的模拟反馈报告。"

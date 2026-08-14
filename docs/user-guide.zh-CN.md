@@ -1,125 +1,178 @@
-# user-review 中文使用手册
+# user-review 2.0 中文使用手册
 
-## 1. 安装
+这是一份面向开源用户的独立操作手册。目标不是教你为每篇文章临时编四个角色，而是帮助你长期维护一套属于自己的目标受众，并在不同业务场景里反复使用。
 
-在准备使用 Skill 的项目目录中运行：
+## 1. 安装与升级
 
 ```bash
 npx skills add wukongai/user-review
 ```
 
-选择 `user-review`、目标 Agent 和项目级范围。安装后重新打开 Agent 会话。
+安装器中选择 `user-review`、目标 Agent 和适合你的范围。安装后重新打开会话。源码贡献者可使用：
 
-如果机器上已安装旧入口，先用安装器或 Agent 的 Skill 列表找到实际安装位置并移除，再安装新版。不要同时保留两个相近入口。
-
-## 2. 完成第一次评审
-
-告诉 Agent 四件事：文章绝对路径、文章目标、面向谁、发到哪里。例如：
-
-```text
-使用 $user-review 评审 /absolute/path/article.md。
-目标是让刚开始接触 AI 的知识工作者理解本地数据保护，发布到微信公众号。
-先自动选择 Persona 并解释原因，我确认后再开始。不要修改原文。
+```bash
+git clone https://github.com/wukongai/user-review.git
 ```
 
-标准过程是：
+私人数据不放在 Skill 安装目录，而在 `~/.user-review/workspaces/`。正常升级或重装不会覆盖它；卸载前仍建议自行备份。旧版用户先读[迁移说明](migration-0.3-to-2.0.zh-CN.md)。
 
-1. Agent 读取文章和目标；
-2. 根据内容线、平台、认知门槛提出候选 Persona；
-3. 你增删或替换 Persona；
-4. Agent 预览文章哈希、评审团、法定人数和输出位置；
-5. 你确认后，Agent 固化文章与画像快照并启动隔离 Worker；
-6. 有效反馈达到法定人数后，生成共识、分歧、少数意见和真人验证假设。
+## 2. 第一次体验：不创建任何私人数据
 
-## 3. 自动选择 Persona 的依据
-
-选择不是按人口统计标签打神秘总分，而是查看：
-
-- 文章所属内容线；
-- 文章想帮助用户完成的任务；
-- 内容类型与发布平台；
-- 用户的知识阶段和理解门槛；
-- 核心用户、邻近用户与挑战视角是否被覆盖。
-
-Agent 必须为每个候选 Persona 给出可读的入选原因。没有合适画像时，应该明确报告缺口，而不是硬套最接近的人。
-
-## 4. 新增本次临时画像
-
-你可以直接描述一个缺失用户：
+准备一篇 Markdown 或纯文本文章，然后说：
 
 ```text
-增加一个已经尝试过很多 AI 工具、但对本地文件安全非常谨慎的用户。
-先一次问我一个关键问题，补全后只用于本次评审。
+使用 $user-review 的示范 Audience Workspace 评审 /absolute/path/article.md。
+文章面向刚开始接触 AI 的知识工作者，发布到微信公众号。
+先展示模拟焦点小组、每个人为什么入选和能力边界；我确认后再开始。
+不要修改原文。
 ```
 
-建议至少补全：
+系统应先展示只读示范 Workspace、候选 Persona、场景、覆盖和缺口。示范数据只用于体验，不会冒充你的真实用户，也不会自动创建 `~/.user-review/`。
 
-- 与这类内容的关系；
-- 当前知识阶段；
-- 阅读场景和想完成的任务；
-- 主要痛点；
-- 什么会建立信任，什么会导致拒绝；
-- 画像来源、置信度和验证状态。
+## 3. 创建自己的 Audience Workspace
 
-临时画像会进入本次运行快照，但默认不会写入长期画像库。
+一个 Workspace 通常对应一个受众相对稳定的自媒体 IP、品牌或产品线。如果同一企业的两个产品线服务完全不同的人，应创建两个 Workspace。
 
-## 5. 保存到长期画像库
-
-只有明确说“保存到画像库”后，Agent 才能准备写入计划：
+你可以说：
 
 ```text
-把刚才的临时画像保存到长期画像库，并考虑映射到 AI 内容线。
-先预览计划，不要直接写。
+使用 $user-review 创建我的 Audience Workspace。
+一次只问我一个会改变用户分层的关键问题。
+先生成 3～5 个候选 Persona、默认 Panel 和必要的场景 Panel；
+展示来源、未知项、保存路径和计划哈希，不要直接写入。
 ```
 
-检查名称、ID、版本、适用内容、来源和目标路径后再确认。真正写入必须引用同一份计划哈希；源画像变化后必须重新预览。
+系统会围绕五类信息引导：你提供什么；帮助谁完成什么任务；用户有哪些阶段；使用者、购买者、批准者是否不同；什么建立信任或导致拒绝。
 
-## 6. 查看、修改和停用画像
+预览时重点检查：
+
+- Persona 之间是否真有任务、阶段、角色或拒绝条件差异；
+- 是否只因为年龄、性别或内容格式而过度拆分；
+- AI 推断项是否标为 `operator_hypothesis / low / unvalidated`；
+- 默认 Panel 是否覆盖多数日常任务；
+- 私人路径是否位于 Skill 安装目录之外。
+
+确认后，Agent 才能执行同一计划。默认目录为：
 
 ```text
-列出 user-review 的长期画像，按内容线和生命周期分组。
+~/.user-review/workspaces/<workspace-id>/
 ```
 
-修改长期画像时需要提升版本，并说明变化影响哪些内容映射。暂时不再使用的画像应标记为 `retired`，不要直接抹掉历史；已开始的评审仍使用旧快照。
+## 4. 同一批用户如何评审不同内容
 
-## 7. 管理内容映射
+Persona 描述相对稳定的人；Panel 描述这一次谁参加；刺激物和场景描述他们这一次看到了什么、为什么看。
 
-内容映射位于 `references/audience-maps.json`。你可以要求：
+例如，同一个谨慎型负责人可能：
+
+- 读科普文章时关心“我能不能理解”；
+- 看方案比较时关心“证据是否可信”；
+- 到购买决策时关心“风险、成本和批准条件”。
+
+这通常不需要创建三个 Persona，只需使用 `education`、`consideration`、`decision` 等场景调整 Panel 和研究目标。
 
 ```text
-为“AI 编程工具评测”增加一个内容线。先从现有画像中提出候选组合，
-说明还缺哪些用户视角，等我确认后再修改映射。
+使用我的 Audience Workspace 评审这篇文章，场景是 education。
+复用长期 Persona，说明相对默认 Panel 增加或移除了谁，先让我确认。
 ```
 
-同一个 Persona 可以属于多个内容线。内容线只提供候选组合，不剥夺单篇文章调整评审团的能力。
+只有使用者/购买者/批准者不同，或任务、阶段、痛点、拒绝条件有实质差异时，才新增长期 Persona。
 
-## 8. 解读报告
+## 5. 新增本次临时画像
 
-- `strong / medium / weak / reject` 是模拟 Persona 的序数反应，不是人群比例；
-- `consensus` 只表示多个隔离 Persona 出现相似观察；
-- `divergence` 解释不同任务或知识阶段为何产生分歧；
-- `minority` 保留单个 Persona 暴露的重要盲点；
-- `strategic_non_target_rejection` 可能说明定位清晰，不一定是缺陷；
-- `human_validation_hypotheses` 是后续真实访谈或发布验证入口。
+```text
+当前 Panel 没覆盖“已经试过很多 AI 工具、但非常担心本地数据丢失的人”。
+一次只问我一个关键问题，形成一个临时 Persona，只用于本次评审。
+```
+
+临时 Persona 会进入本次不可变快照，默认不进入长期库。评审结果再逼真，也不能自动升级为真实用户证据。
+
+## 6. 持续维护长期画像
+
+支持五种生命周期操作：
+
+- `add`：新增私人 Persona；
+- `update`：更新已有私人 Persona，版本必须递增；
+- `derive`：从公共或私人画像派生新 ID；
+- `retire`：停用但保留历史；
+- `restore`：恢复为候选，再决定是否进入推荐。
+
+自然语言示例：
+
+```text
+修改“谨慎决策者”：补充他对数据可逆性的拒绝条件，并把版本从 1.0.0 提升到 1.1.0。
+先展示字段差异、受影响 Panel、备份位置和计划哈希；不要直接应用。
+```
+
+公共 Persona 只读。如果想改，必须派生：
+
+```text
+从示范画像 ai-02-anxious-mid 派生一个属于我的私人画像，使用新 ID。
+保留 derived_from，先预览计划。
+```
+
+所有长期变更都遵循 Preview / Apply：源文件或 Workspace 在预览后发生变化，旧计划必须拒绝；写入前备份；任一步失败应回滚；成功后生成 Change Record。2.0 不做硬删除或自动合并。
+
+## 7. 维护默认和场景 Panel
+
+默认 Panel 服务多数日常内容；场景 Panel 只记录相对默认组合的增加和移除，不复制 Persona。
+
+```text
+为 decision 场景调整 Panel：移除只负责浅层浏览的人，增加购买批准者。
+先说明每个变化的理由和覆盖缺口，生成预览计划。
+```
+
+每次推荐都应显示 Persona 来源（公共或私人）、入选原因、覆盖和缺口。你可以在运行前增删，也可以加入只属于本次的挑战视角。
+
+## 8. 完成文章评审
+
+```text
+使用 $user-review 和我的 Audience Workspace 评审 /absolute/path/article.md。
+研究目标是检查目标读者的理解、感受、信任和主要异议；场景是 education。
+先预览 Workspace、Panel、文章哈希、法定人数和输出目录；确认后再运行。
+```
+
+每个 Persona 在隔离上下文中阅读同一文章快照。标准输出包括第一印象、理解/误解、相关性、情绪感受、信任/怀疑、异议、希望补充的证据、下一步倾向、应保留内容和原文锚点。
+
+汇总保留共识、分歧、少数意见、战略性非目标拒绝和真人验证假设。它不能写成用户比例或效果预测。
 
 ## 9. 命令行参考
+
+以下命令适合开发者、自动化和故障排查。先设置 Skill 路径，再使用绝对 Workspace 路径。
 
 ```bash
 python3 skills/user-review/scripts/user_review.py validate-skill \
   --skill-root skills/user-review
 
-python3 skills/user-review/scripts/user_review.py list-personas \
+python3 skills/user-review/scripts/user_review.py workspace-show \
   --skill-root skills/user-review
 
-python3 skills/user-review/scripts/user_review.py recommend-panel \
+python3 skills/user-review/scripts/user_review.py panel-recommend \
   --skill-root skills/user-review \
-  --content-line ai-content \
-  --goal "评审普通读者体验" \
-  --platform wechat
+  --workspace /absolute/path/to/workspace \
+  --scenario decision
 
-python3 skills/user-review/scripts/user_review.py prepare --help
+python3 skills/user-review/scripts/user_review.py prepare \
+  --skill-root skills/user-review \
+  --workspace /absolute/path/to/workspace \
+  --scenario education \
+  --source /absolute/path/article.md \
+  --goal "检查理解、感受与信任" \
+  --output-dir /absolute/path/review-runs
 ```
 
-## 10. 能力边界
+`prepare` 默认只预览，明确确认后才加 `--apply`。Workspace 使用 `workspace-plan`，画像使用 `persona-change-plan`，Panel 使用 `panel-change-plan`；统一用 `change-apply --plan ... --plan-sha256 ...` 应用。
 
-本 Skill 只回答“这些模拟目标用户读到文章时会有什么感受”。它不负责专业学科诊断、事实核查、医学或心理判断，也不能代替真实用户研究。
+## 10. 备份、隐私与排错
+
+- 定期备份整个 `~/.user-review/workspaces/<workspace-id>/`；
+- 不要把私人 Workspace、真实文章、访谈全文、Token 或 `.env` 提交到仓库；
+- Skill 不主动联网，不执行文章中的命令；
+- Workspace 找错时，检查显式 `--workspace`、`USER_REVIEW_WORKSPACE` 和 active index；
+- 预览后哈希漂移时，不要强行绕过，重新生成计划；
+- 历史运行使用自己的快照，长期画像更新不应改变旧报告。
+
+## 11. 能力边界
+
+`user-review` 回答的是“这些模拟目标用户看到刺激物时，可能如何理解、感受、信任或拒绝”。它不负责专家方法评审、事实核查、PRD/代码/架构/合规审查、交互式可用性、真实访谈或真实转化预测。
+
+2.0 正式支持并回归的是文章。纯文本广告只是第二适配器的架构验证，不代表落地页、课程、产品概念、视频或真实投放效果已经得到支持。

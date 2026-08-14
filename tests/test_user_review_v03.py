@@ -105,7 +105,7 @@ class UserReviewV03Tests(unittest.TestCase):
             self.assertFalse(json.loads(completed.stdout)["apply"])
             self.assertFalse(output.exists())
 
-    def test_persona_save_requires_same_preview_plan(self):
+    def test_legacy_persona_save_is_rejected(self):
         with tempfile.TemporaryDirectory() as raw:
             tmp = Path(raw)
             skill = tmp / "user-review"
@@ -121,29 +121,19 @@ class UserReviewV03Tests(unittest.TestCase):
                 "language_cues": ["谨慎", "具体"], "lifecycle": "reusable",
             }, ensure_ascii=False), encoding="utf-8")
             plan = tmp / "plan.json"
-            subprocess.run(
+            completed = subprocess.run(
                 [
                     sys.executable, str(SCRIPT), "persona-plan", "--persona", str(source),
                     "--skill-root", str(skill), "--entry", str(entry),
                     "--content-line", "ai-content", "--plan", str(plan),
                 ],
-                check=True, text=True, encoding="utf-8", capture_output=True,
+                text=True, encoding="utf-8", capture_output=True,
             )
-            payload = json.loads(plan.read_text(encoding="utf-8"))
-            subprocess.run(
-                [
-                    sys.executable, str(SCRIPT), "persona-apply", "--plan", str(plan),
-                    "--plan-sha256", self.module.sha256_file(plan),
-                ],
-                check=True, text=True, encoding="utf-8", capture_output=True,
-            )
-            self.assertTrue(Path(payload["target"]).is_file())
-            library = json.loads((skill / "references" / "personas" / "catalog.json").read_text(encoding="utf-8"))
-            maps = json.loads((skill / "references" / "audience-maps.json").read_text(encoding="utf-8"))
-            self.assertIn("ai-05-obsidian-owner", library["personas"])
-            self.assertIn("ai-05-obsidian-owner", maps["content_lines"]["ai-content"]["persona_ids"])
+            self.assertEqual(completed.returncode, 2)
+            self.assertIn("私人 Workspace", completed.stderr)
+            self.assertFalse(plan.exists())
 
-    def test_persona_apply_rejects_source_drift(self):
+    def test_legacy_persona_apply_is_rejected(self):
         with tempfile.TemporaryDirectory() as raw:
             tmp = Path(raw)
             skill = tmp / "user-review"
@@ -158,17 +148,13 @@ class UserReviewV03Tests(unittest.TestCase):
                 "pains": [], "trust_signals": [], "rejection_signals": [], "language_cues": [], "lifecycle": "reusable",
             }, ensure_ascii=False), encoding="utf-8")
             plan = tmp / "plan.json"
-            subprocess.run([
-                sys.executable, str(SCRIPT), "persona-plan", "--persona", str(source),
-                "--skill-root", str(skill), "--entry", str(entry), "--plan", str(plan),
-            ], check=True, text=True, encoding="utf-8", capture_output=True)
+            plan.write_text("{}\n", encoding="utf-8")
             plan_hash = self.module.sha256_file(plan)
-            source.write_text(source.read_text(encoding="utf-8") + "\n已变化\n", encoding="utf-8")
             completed = subprocess.run([
                 sys.executable, str(SCRIPT), "persona-apply", "--plan", str(plan), "--plan-sha256", plan_hash,
             ], text=True, encoding="utf-8", capture_output=True)
             self.assertEqual(completed.returncode, 2)
-            self.assertIn("已漂移", completed.stderr)
+            self.assertIn("change-apply", completed.stderr)
 
     def test_worker_and_synthesis_contract_has_no_expert_fields(self):
         worker = json.loads((SKILL / "assets" / "worker-result-template.json").read_text(encoding="utf-8"))

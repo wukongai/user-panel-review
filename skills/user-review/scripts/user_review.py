@@ -20,6 +20,13 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import audience_workspace as aw
+
+
 SIGNALS = {"strong", "medium", "weak", "reject"}
 CONFIDENCE = {"low", "medium", "high"}
 PROVENANCE = {"grounded", "inferred", "operator_hypothesis", "synthetic"}
@@ -271,8 +278,35 @@ def prepare(args: argparse.Namespace) -> int:
     if sensitive_findings(source_text):
         raise ValidationError("原文疑似包含凭证或私钥；请脱敏后再评审")
     library = load_persona_library(skill_root)
-    selected = select_personas(skill_root, library, args.content_line, args.persona, args.dynamic_persona)
+    workspace_view = None
+    if args.workspace:
+        workspace_view, workspace_selected = aw.panel_persona_files(
+            skill_root, Path(args.workspace).expanduser().resolve(), args.scenario
+        )
+        selected = [
+            {
+                "id": item["id"],
+                "path": item["path"],
+                "meta": validate_persona_file(item["path"], item["id"]),
+                "run_local": False,
+            }
+            for item in workspace_selected
+        ]
+        for raw in args.dynamic_persona:
+            path = Path(raw).expanduser().resolve()
+            meta = validate_persona_file(path)
+            if meta["provenance"] != "synthetic" or meta["validation_status"] != "unvalidated":
+                raise ValidationError("本次运行画像必须是 synthetic 且 unvalidated")
+            selected.append({"id": meta["id"], "path": path, "meta": meta, "run_local": True})
+        all_ids = [item["id"] for item in selected]
+        if not all_ids or len(all_ids) != len(set(all_ids)):
+            raise ValidationError("评审团为空或存在重复 Persona")
+    else:
+        selected = select_personas(skill_root, library, args.content_line, args.persona, args.dynamic_persona)
     source_hash = sha256_file(source)
+    object_type = args.object_type
+    protocol = "article-reading" if object_type == "article" else "message-testing"
+    evidence_label = "validated-mainline" if object_type == "article" else "experimental-adapter"
     quorum = args.quorum if args.quorum is not None else (1 if len(selected) == 1 else max(2, math.ceil(len(selected) * 0.6)))
     if quorum < 1 or quorum > len(selected):
         raise ValidationError("quorum 必须介于 1 和 Persona 数量之间")
@@ -280,6 +314,13 @@ def prepare(args: argparse.Namespace) -> int:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{2,80}", run_id):
         raise ValidationError("run id 无效")
     run_dir = output_dir / run_id
+    workspace_snapshot = None
+    if workspace_view:
+        workspace_snapshot = {
+            "manifest": workspace_view["manifest"],
+            "panels": workspace_view["panels"],
+            "resolved_scenario": workspace_view["resolved_scenario"],
+        }
     manifest: dict[str, Any] = {
         "schema_version": "2.0",
         "run_id": run_id,
@@ -287,10 +328,33 @@ def prepare(args: argparse.Namespace) -> int:
         "status": "planned",
         "research_goal": args.goal,
         "source": {"name": source.name, "sha256": source_hash, "snapshot": "source-snapshot.md"},
-        "selection": {"content_line": args.content_line, "explainable": True},
+        "selection": {
+            "content_line": args.content_line,
+            "scenario": workspace_view["resolved_scenario"] if workspace_view else None,
+            "explainable": True,
+        },
+        "stimulus": {
+            "schema": "user-review-stimulus/v1",
+            "object_type": object_type,
+            "modality": "text",
+            "protocol": protocol,
+            "research_goal": args.goal,
+            "exposure_context": {"scenario": workspace_view["resolved_scenario"] if workspace_view else None},
+            "source_hash": source_hash,
+            "evidence_label": evidence_label,
+        },
         "panel": {"planned_count": len(selected), "worker_count": len(selected), "quorum": quorum, "personas": []},
         "evidence": {"kind": "synthetic", "utility_claim": "not-evaluated"},
     }
+    if workspace_view and workspace_snapshot:
+        snapshot_bytes = (json.dumps(workspace_snapshot, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+        manifest["workspace"] = {
+            "id": workspace_view["manifest"]["id"],
+            "name": workspace_view["manifest"]["name"],
+            "source": workspace_view["source"],
+            "snapshot": "workspace-snapshot.json",
+            "snapshot_sha256": sha256_bytes(snapshot_bytes),
+        }
     for index, item in enumerate(selected, start=1):
         result_id = f"worker-{index:02d}-{item['id']}"
         manifest["panel"]["personas"].append({
@@ -311,6 +375,8 @@ def prepare(args: argparse.Namespace) -> int:
     (run_dir / "personas").mkdir(parents=True)
     (run_dir / "workers").mkdir()
     shutil.copyfile(source, run_dir / "source-snapshot.md")
+    if workspace_snapshot:
+        write_json(run_dir / "workspace-snapshot.json", workspace_snapshot)
     for item in selected:
         shutil.copyfile(item["path"], run_dir / "personas" / f"{item['id']}.md")
     write_json(run_dir / "manifest.json", manifest)
@@ -319,89 +385,17 @@ def prepare(args: argparse.Namespace) -> int:
 
 
 def persona_plan(args: argparse.Namespace) -> int:
-    source = Path(args.persona).expanduser().resolve()
-    skill_root = Path(args.skill_root).expanduser().resolve()
-    library_dir = skill_root / "references" / "personas"
-    catalog_path = library_dir / "catalog.json"
-    maps_path = skill_root / "references" / "audience-maps.json"
-    plan_path = Path(args.plan).expanduser().resolve()
-    meta = validate_persona_file(source)
-    library = load_persona_library(skill_root)
-    maps = load_audience_maps(skill_root, library)
-    entry = read_json(Path(args.entry).expanduser().resolve())
-    required_entry = {
-        "name", "summary", "domains", "content_types", "platforms", "content_relationship",
-        "knowledge_stage", "reading_context", "job_to_be_done", "pains", "trust_signals",
-        "rejection_signals", "language_cues", "lifecycle",
-    }
-    missing = sorted(required_entry - entry.keys())
-    if missing:
-        raise ValidationError(f"长期画像目录条目缺少字段：{missing}")
-    persona_id = meta["id"]
-    if persona_id in library["personas"]:
-        raise ValidationError(f"长期画像 ID 已存在：{persona_id}")
-    entry.update({
-        "file": f"{persona_id}.md", "version": meta["version"], "provenance": meta["provenance"],
-        "confidence": meta["confidence"], "validation_status": meta["validation_status"],
-    })
-    proposed_library = json.loads(json.dumps(library, ensure_ascii=False))
-    proposed_library["personas"][persona_id] = entry
-    proposed_maps = json.loads(json.dumps(maps, ensure_ascii=False))
-    if args.content_line:
-        mapping = proposed_maps["content_lines"].get(args.content_line)
-        if not mapping:
-            raise ValidationError(f"未知内容线：{args.content_line}")
-        if persona_id not in mapping["persona_ids"]:
-            mapping["persona_ids"].append(persona_id)
-    target = library_dir / f"{meta['id']}.md"
-    if target.exists():
-        raise ValidationError(f"长期画像已存在：{target}")
-    payload = {
-        "schema_version": "1.0", "operation": "save-persona", "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-        "source": str(source), "source_sha256": sha256_file(source), "skill_root": str(skill_root),
-        "catalog": str(catalog_path), "catalog_before_sha256": sha256_file(catalog_path),
-        "audience_maps": str(maps_path), "audience_maps_before_sha256": sha256_file(maps_path),
-        "target": str(target), "target_must_not_exist": True, "content_line": args.content_line,
-        "proposed_library": proposed_library, "proposed_audience_maps": proposed_maps,
-    }
-    write_json(plan_path, payload)
-    print(json.dumps({"plan": str(plan_path), "plan_sha256": sha256_file(plan_path), "preview": payload}, ensure_ascii=False, indent=2))
-    return 0
+    raise ValidationError(
+        "user-review 2.0 不再向 Skill 安装目录保存画像；"
+        "请创建私人 Workspace，并使用 persona-change-plan 生成变更预览。"
+    )
 
 
 def persona_apply(args: argparse.Namespace) -> int:
-    plan_path = Path(args.plan).expanduser().resolve()
-    if sha256_file(plan_path) != args.plan_sha256:
-        raise ValidationError("计划哈希不匹配；请重新预览")
-    plan = read_json(plan_path)
-    if plan.get("operation") != "save-persona":
-        raise ValidationError("计划操作无效")
-    source = Path(plan["source"])
-    if sha256_file(source) != plan["source_sha256"]:
-        raise ValidationError("Persona 源文件已漂移；请重新预览")
-    catalog_path = Path(plan["catalog"])
-    maps_path = Path(plan["audience_maps"])
-    if sha256_file(catalog_path) != plan["catalog_before_sha256"] or sha256_file(maps_path) != plan["audience_maps_before_sha256"]:
-        raise ValidationError("画像库或内容映射已漂移；请重新预览")
-    target = Path(plan["target"])
-    if target.exists():
-        raise ValidationError(f"目标画像已存在：{target}")
-    original_library = read_json(catalog_path)
-    original_maps = read_json(maps_path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, target)
-    try:
-        write_json(catalog_path, plan["proposed_library"])
-        write_json(maps_path, plan["proposed_audience_maps"])
-        load_persona_library(Path(plan["skill_root"]))
-        load_audience_maps(Path(plan["skill_root"]))
-    except Exception:
-        write_json(catalog_path, original_library)
-        write_json(maps_path, original_maps)
-        target.unlink(missing_ok=True)
-        raise
-    print(json.dumps({"saved": str(target), "catalog": str(catalog_path), "content_line": plan.get("content_line")}, ensure_ascii=False))
-    return 0
+    raise ValidationError(
+        "user-review 2.0 已停用旧 persona-apply；"
+        "私人 Workspace 的变更必须使用 change-apply，并提交同一份预览计划的哈希。"
+    )
 
 
 def manifest_persona(manifest: dict[str, Any], persona_id: str) -> dict[str, Any]:
@@ -566,6 +560,11 @@ def render_report(args: argparse.Namespace) -> int:
 def validate_skill(skill_root: Path) -> dict[str, Any]:
     required = [
         "SKILL.md", "LICENSE", "agents/openai.yaml", "skill.contract.yaml", "scripts/user_review.py",
+        "scripts/audience_workspace.py", "references/demo-workspace/workspace.json",
+        "references/demo-workspace/panels.json", "references/schemas/workspace.schema.json",
+        "references/schemas/panels.schema.json", "references/schemas/change-plan.schema.json",
+        "references/schemas/change-record.schema.json", "references/schemas/stimulus.schema.json",
+        "references/onboarding.md", "references/architecture.md",
         "references/reviewer-protocol.md", "references/persona-governance.md", "references/evidence-policy.md",
         "references/aggregation-policy.md", "references/host-adapters.md", "references/personas/catalog.json",
         "references/audience-maps.json", "references/schemas/persona.schema.json",
@@ -613,9 +612,12 @@ def build_parser() -> argparse.ArgumentParser:
     prepare_parser = sub.add_parser("prepare", help="预览或创建不可变评审运行")
     prepare_parser.add_argument("--skill-root", required=True)
     prepare_parser.add_argument("--source", required=True)
+    prepare_parser.add_argument("--object-type", choices=["article", "advertisement"], default="article")
     prepare_parser.add_argument("--goal", required=True)
     prepare_parser.add_argument("--output-dir", required=True)
     prepare_parser.add_argument("--content-line")
+    prepare_parser.add_argument("--workspace")
+    prepare_parser.add_argument("--scenario", default="default")
     prepare_parser.add_argument("--persona", action="append", default=[])
     prepare_parser.add_argument("--dynamic-persona", action="append", default=[])
     prepare_parser.add_argument("--quorum", type=int)
@@ -630,6 +632,36 @@ def build_parser() -> argparse.ArgumentParser:
     apply_parser = sub.add_parser("persona-apply", help="按同一不可变计划保存画像")
     apply_parser.add_argument("--plan", required=True)
     apply_parser.add_argument("--plan-sha256", required=True)
+    workspace_show = sub.add_parser("workspace-show", help="查看当前 Audience Workspace")
+    workspace_show.add_argument("--skill-root", required=True)
+    workspace_show.add_argument("--workspace")
+    workspace_show.add_argument("--data-home")
+    workspace_plan = sub.add_parser("workspace-plan", help="预览创建私人 Audience Workspace")
+    workspace_plan.add_argument("--skill-root", required=True)
+    workspace_plan.add_argument("--seed", required=True)
+    workspace_plan.add_argument("--data-home", required=True)
+    workspace_plan.add_argument("--plan", required=True)
+    persona_change = sub.add_parser("persona-change-plan", help="预览私人 Persona 生命周期变更")
+    persona_change.add_argument("--operation", choices=["add", "update", "derive", "retire", "restore"], required=True)
+    persona_change.add_argument("--skill-root", required=True)
+    persona_change.add_argument("--workspace", required=True)
+    persona_change.add_argument("--persona")
+    persona_change.add_argument("--entry")
+    persona_change.add_argument("--persona-id")
+    persona_change.add_argument("--source-id")
+    persona_change.add_argument("--plan", required=True)
+    panel_change = sub.add_parser("panel-change-plan", help="预览默认或场景 Panel 变更")
+    panel_change.add_argument("--skill-root", required=True)
+    panel_change.add_argument("--workspace", required=True)
+    panel_change.add_argument("--patch", required=True)
+    panel_change.add_argument("--plan", required=True)
+    panel_recommend = sub.add_parser("panel-recommend", help="从稳定画像中推荐可解释的场景评审团")
+    panel_recommend.add_argument("--skill-root", required=True)
+    panel_recommend.add_argument("--workspace")
+    panel_recommend.add_argument("--scenario", default="default")
+    change_apply = sub.add_parser("change-apply", help="应用同一份不可变 Workspace 变更计划")
+    change_apply.add_argument("--plan", required=True)
+    change_apply.add_argument("--plan-sha256", required=True)
     worker = sub.add_parser("validate-worker", help="校验 Persona Worker 结果")
     worker.add_argument("--manifest", required=True)
     worker.add_argument("--result", required=True)
@@ -661,6 +693,33 @@ def main(argv: list[str] | None = None) -> int:
             return persona_plan(args)
         elif args.command == "persona-apply":
             return persona_apply(args)
+        elif args.command == "workspace-show":
+            workspace = Path(args.workspace).expanduser().resolve() if args.workspace else None
+            data_home = Path(args.data_home).expanduser().resolve() if args.data_home else None
+            result = aw.workspace_summary(aw.load_workspace(Path(args.skill_root).resolve(), workspace, data_home))
+        elif args.command == "workspace-plan":
+            result = aw.build_workspace_plan(
+                Path(args.skill_root).resolve(), Path(args.data_home).expanduser().resolve(),
+                Path(args.seed).expanduser().resolve(), Path(args.plan).expanduser().resolve(),
+            )
+        elif args.command == "persona-change-plan":
+            result = aw.build_persona_plan(
+                Path(args.skill_root).resolve(), Path(args.workspace).expanduser().resolve(), args.operation,
+                Path(args.plan).expanduser().resolve(),
+                Path(args.persona).expanduser().resolve() if args.persona else None,
+                Path(args.entry).expanduser().resolve() if args.entry else None,
+                args.persona_id, args.source_id,
+            )
+        elif args.command == "panel-change-plan":
+            result = aw.build_panel_plan(
+                Path(args.skill_root).resolve(), Path(args.workspace).expanduser().resolve(),
+                Path(args.patch).expanduser().resolve(), Path(args.plan).expanduser().resolve(),
+            )
+        elif args.command == "panel-recommend":
+            workspace = Path(args.workspace).expanduser().resolve() if args.workspace else None
+            result = aw.recommend_panel(Path(args.skill_root).resolve(), workspace, args.scenario)
+        elif args.command == "change-apply":
+            result = aw.apply_change_plan(Path(args.plan).expanduser().resolve(), args.plan_sha256)
         elif args.command == "validate-worker":
             worker = validate_worker(Path(args.manifest).resolve(), Path(args.result).resolve())
             result = {"status": "valid", "worker_result_id": worker["worker_result_id"]}
@@ -673,7 +732,7 @@ def main(argv: list[str] | None = None) -> int:
             raise ValidationError(f"不支持的命令：{args.command}")
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
-    except ValidationError as exc:
+    except (ValidationError, aw.WorkspaceError) as exc:
         print(json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return 2
 

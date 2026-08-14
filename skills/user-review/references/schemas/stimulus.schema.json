@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "user-review-stimulus/v1",
+  "title": "User Review Stimulus Package",
+  "type": "object",
+  "required": ["schema", "object_type", "modality", "protocol", "research_goal", "source_hash", "evidence_label"],
+  "properties": {
+    "schema": {"const": "user-review-stimulus/v1"},
+    "object_type": {"enum": ["article", "advertisement"]},
+    "modality": {"const": "text"},
+    "protocol": {"enum": ["article-reading", "message-testing"]},
+    "exposure_context": {"type": "object"},
+    "target_audience": {"type": "string"},
+    "research_goal": {"type": "string", "minLength": 1},
+    "content_elements": {"type": "array", "items": {"type": "string"}},
+    "evidence_anchors": {"type": "array", "items": {"type": "string"}},
+    "internal_context_excluded": {"type": "array", "items": {"type": "string"}},
+    "source_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "evidence_label": {"enum": ["validated-mainline", "experimental-adapter"]}
+  },
+  "additionalProperties": true
+}

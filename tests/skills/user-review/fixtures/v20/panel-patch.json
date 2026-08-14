@@ -1,0 +1,9 @@
+{
+  "schema": "user-review-panel-patch/v1",
+  "scenario": "decision",
+  "label": "采用决策",
+  "description": "评审购买、采用或批准前的信任与异议。",
+  "add_persona_ids": ["custom-data-guardian"],
+  "remove_persona_ids": ["ai-01-scroller"],
+  "required_relationships": ["core", "challenge"]
+}

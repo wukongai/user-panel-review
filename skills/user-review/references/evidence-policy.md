@@ -29,3 +29,7 @@
 每个重要综合断言都必须包含 worker 结果 ID。每个引用的文章断言都必须能解析到不可变快照。报告缺失的 worker、抽样覆盖范围、模型同质性、Persona 来源和置信度限制。
 
 在 baseline、holdout、真实 rollout 和独立评审支持更强断言前，将 `utility_claim: not-evaluated` 保持不变。
+
+## 适配器标签
+
+文章适配器完成确定性与用户模拟回归，可标记 `validated-mainline`，但仍只是合成证据。纯文本广告只标记 `experimental-adapter`，用于验证稳定 Persona 能在不同刺激物中复用；它不代表落地页、真实投放或转化效果获得支持。

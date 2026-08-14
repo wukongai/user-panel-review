@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "user-review-change-plan/v1",
+  "type": "object",
+  "required": ["schema", "operation", "record_id", "before", "sources", "proposed_files", "workspace", "impact"],
+  "properties": {
+    "schema": {"const": "user-review-change-plan/v1"},
+    "operation": {"type": "string"},
+    "record_id": {"type": "string"},
+    "before": {"type": "object"},
+    "sources": {"type": "object"},
+    "proposed_files": {"type": "object", "minProperties": 1},
+    "workspace": {"type": "string"},
+    "impact": {"type": "object"}
+  }
+}

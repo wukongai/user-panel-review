@@ -1,0 +1,36 @@
+{
+  "schema": "user-review-panels/v1",
+  "default_panel": "default",
+  "panels": {
+    "default": {
+      "kind": "base",
+      "label": "默认 AI 内容焦点小组",
+      "description": "覆盖核心、邻近与挑战视角。",
+      "persona_ids": [
+        "ai-01-scroller",
+        "ai-02-anxious-mid",
+        "ai-03-seeker",
+        "ai-04-power-user"
+      ],
+      "required_relationships": ["core", "adjacent", "challenge"]
+    },
+    "education": {
+      "kind": "scenario",
+      "label": "认知与教育",
+      "description": "检查理解门槛、相关性与继续阅读理由。",
+      "base": "default",
+      "add_persona_ids": [],
+      "remove_persona_ids": [],
+      "required_relationships": ["core", "adjacent", "challenge"]
+    },
+    "decision": {
+      "kind": "scenario",
+      "label": "采用决策",
+      "description": "检查信任、异议、证据和采用阻力。",
+      "base": "default",
+      "add_persona_ids": [],
+      "remove_persona_ids": ["ai-01-scroller"],
+      "required_relationships": ["core", "challenge"]
+    }
+  }
+}

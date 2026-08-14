@@ -1,0 +1,8 @@
+{
+  "schema": "user-review-workspace-seed/v1",
+  "id": "test-ai-studio",
+  "name": "测试 AI 创作室",
+  "offering": "帮助创作者把 AI 用进真实项目",
+  "audience_promise": "让不同阶段的创作者找到可执行、可验证的 AI 工作方法",
+  "from_demo": true
+}

@@ -1,0 +1,19 @@
+{
+  "name": "本地数据谨慎型创作者",
+  "summary": "已经使用 AI，但只有看到本地优先、备份与回滚证据才愿意继续。",
+  "segment": "项目实践者",
+  "role": "user",
+  "domains": ["ai"],
+  "content_types": ["article", "sales-page"],
+  "platforms": ["wechat", "web"],
+  "content_relationship": "core",
+  "knowledge_stage": "experienced",
+  "reading_context": "准备让 Agent 处理真实工作文件之前",
+  "job_to_be_done": "确认方案不会破坏或泄露本地资料",
+  "pains": ["数据丢失", "权限不透明"],
+  "constraints": ["必须可回滚"],
+  "trust_signals": ["本地优先", "明确备份", "可逆步骤"],
+  "rejection_signals": ["跳过备份", "模糊上传边界"],
+  "language_cues": ["谨慎", "具体"],
+  "lifecycle": "reusable"
+}

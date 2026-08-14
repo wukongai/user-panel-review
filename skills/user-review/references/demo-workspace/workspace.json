@@ -1,0 +1,12 @@
+{
+  "schema": "user-review-workspace/v1",
+  "id": "demo-ai-creator",
+  "name": "星桥 AI 创作室（虚构示范）",
+  "storage": "builtin_read_only",
+  "offering": "帮助知识工作者把 AI 用进真实项目",
+  "audience_promise": "从理解价值到建立可验证、可维护的 AI 工作方式",
+  "persona_catalog": "../personas/catalog.json",
+  "panels_file": "panels.json",
+  "created_at": "2026-08-15T00:00:00Z",
+  "updated_at": "2026-08-15T00:00:00Z"
+}
