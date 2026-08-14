@@ -8,7 +8,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 from pathlib import Path
 from typing import Any
 
@@ -24,8 +23,19 @@ KNOWLEDGE_STAGES = {"unaware", "aware", "problem_solving", "experienced"}
 PROVENANCE = {"grounded", "inferred", "operator_hypothesis", "synthetic"}
 CONFIDENCE = {"low", "medium", "high"}
 VALIDATION_STATUS = {"unvalidated", "partially_validated", "validated"}
+PLAN_OPERATIONS = {
+    "workspace_create",
+    "persona_add",
+    "persona_update",
+    "persona_derive",
+    "persona_retire",
+    "persona_restore",
+    "panel_update",
+}
 ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{1,62}")
 VERSION_PATTERN = re.compile(r"(\d+)\.(\d+)\.(\d+)")
+HASH_PATTERN = re.compile(r"[a-f0-9]{64}")
+RECORD_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,127}")
 
 
 class WorkspaceError(ValueError):
@@ -94,6 +104,21 @@ def ensure_outside(path: Path, skill_root: Path, label: str) -> None:
     except ValueError:
         return
     raise WorkspaceError(f"{label}不得位于 Skill 安装目录内")
+
+
+def ensure_within(path: Path, root: Path, label: str) -> Path:
+    resolved = path.expanduser().resolve()
+    try:
+        resolved.relative_to(root.expanduser().resolve())
+    except ValueError as exc:
+        raise WorkspaceError(f"{label}必须位于 Workspace 内：{resolved}") from exc
+    return resolved
+
+
+def absolute_path(value: Any, label: str) -> Path:
+    if not isinstance(value, str) or not Path(value).expanduser().is_absolute():
+        raise WorkspaceError(f"{label}必须是绝对路径")
+    return Path(value).expanduser().resolve()
 
 
 def validate_id(value: Any, label: str) -> str:
@@ -197,6 +222,8 @@ def resolve_workspace_path(
 
 
 def validate_workspace(skill_root: Path, workspace_path: Path) -> dict[str, Any]:
+    skill_root = skill_root.resolve()
+    workspace_path = workspace_path.resolve()
     manifest_path = workspace_path / "workspace.json"
     manifest = read_json(manifest_path)
     if manifest.get("schema") != WORKSPACE_SCHEMA:
@@ -204,7 +231,13 @@ def validate_workspace(skill_root: Path, workspace_path: Path) -> dict[str, Any]
     validate_id(manifest.get("id"), "Workspace")
     if manifest.get("storage") not in {"builtin_read_only", "private"}:
         raise WorkspaceError("Workspace storage 无效")
-    panels_path = workspace_path / str(manifest.get("panels_file", "panels.json"))
+    if manifest["storage"] == "builtin_read_only" and workspace_path != demo_workspace_path(skill_root).resolve():
+        raise WorkspaceError("只读示范 Workspace 只能来自 Skill 内置 demo-workspace")
+    panels_path = ensure_within(
+        workspace_path / str(manifest.get("panels_file", "panels.json")),
+        workspace_path,
+        "Panels 文件",
+    )
     panels = read_json(panels_path)
     if panels.get("schema") != PANELS_SCHEMA or not isinstance(panels.get("panels"), dict):
         raise WorkspaceError("Panels schema 无效")
@@ -217,6 +250,7 @@ def validate_workspace(skill_root: Path, workspace_path: Path) -> dict[str, Any]
     catalog_path = (workspace_path / str(manifest["persona_catalog"])).resolve()
     if manifest["storage"] == "private":
         ensure_outside(workspace_path, skill_root, "私人 Workspace")
+        ensure_within(catalog_path, workspace_path, "Persona 目录")
         catalog = read_json(catalog_path)
         if catalog.get("schema") != CATALOG_SCHEMA or not isinstance(catalog.get("personas"), dict):
             raise WorkspaceError("私人 Persona 目录无效")
@@ -224,7 +258,11 @@ def validate_workspace(skill_root: Path, workspace_path: Path) -> dict[str, Any]
             if persona_id in builtin:
                 raise WorkspaceError(f"私人 Persona 不得覆盖内置 ID：{persona_id}")
             entry = dict(raw)
-            persona_path = catalog_path.parent / entry["file"]
+            persona_path = ensure_within(
+                catalog_path.parent / entry["file"],
+                workspace_path,
+                f"Persona 文件 {persona_id}",
+            )
             meta = validate_persona_text(read_text(persona_path), persona_id)
             for key in ("version", "provenance", "confidence", "validation_status"):
                 if entry.get(key) != meta[key]:
@@ -271,7 +309,7 @@ def load_workspace(
 ) -> dict[str, Any]:
     path, source = resolve_workspace_path(skill_root, explicit_path, data_home, environ)
     view = validate_workspace(skill_root, path)
-    view["source"] = source
+    view["source"] = "builtin" if view["manifest"]["storage"] == "builtin_read_only" else source
     return view
 
 
@@ -497,31 +535,62 @@ def build_panel_plan(skill_root: Path, workspace: Path, patch_path: Path, plan_p
     if patch.get("schema") != "user-review-panel-patch/v1":
         raise WorkspaceError("Panel patch schema 无效")
     scenario = validate_id(patch.get("scenario"), "Panel")
-    add_ids = patch.get("add_persona_ids", [])
-    remove_ids = patch.get("remove_persona_ids", [])
-    if not isinstance(add_ids, list) or not isinstance(remove_ids, list):
-        raise WorkspaceError("Panel add/remove 必须是数组")
-    unknown = sorted((set(add_ids) | set(remove_ids)) - set(view["personas"]))
-    if unknown:
-        raise WorkspaceError(f"Panel 引用了未知 Persona：{unknown}")
     panels = json.loads(json.dumps(view["panels"], ensure_ascii=False))
+    required = patch.get("required_relationships", ["core"])
+    if not isinstance(required, list) or not required or any(item not in RELATIONSHIPS for item in required):
+        raise WorkspaceError("Panel required_relationships 无效")
     if scenario == panels["default_panel"]:
-        raise WorkspaceError("默认 Panel 请使用完整 persona_ids 变更，不接受场景 patch")
-    panels["panels"][scenario] = {
-        "kind": "scenario",
-        "label": str(patch.get("label", scenario)),
-        "description": str(patch.get("description", "")),
-        "base": panels["default_panel"],
-        "add_persona_ids": add_ids,
-        "remove_persona_ids": remove_ids,
-        "required_relationships": patch.get("required_relationships", ["core"]),
-    }
+        persona_ids = patch.get("persona_ids")
+        if not isinstance(persona_ids, list) or not persona_ids or any(not isinstance(item, str) for item in persona_ids):
+            raise WorkspaceError("默认 Panel 必须提供非空 persona_ids")
+        if len(persona_ids) != len(set(persona_ids)):
+            raise WorkspaceError("默认 Panel 包含重复 Persona")
+        unknown = sorted(set(persona_ids) - set(view["personas"]))
+        if unknown:
+            raise WorkspaceError(f"Panel 引用了未知 Persona：{unknown}")
+        retired = sorted(item for item in persona_ids if view["personas"][item].get("lifecycle") == "retired")
+        if retired:
+            raise WorkspaceError(f"默认 Panel 不得引用 retired Persona：{retired}")
+        panels["panels"][scenario] = {
+            "kind": "base",
+            "label": str(patch.get("label", scenario)),
+            "description": str(patch.get("description", "")),
+            "persona_ids": persona_ids,
+            "required_relationships": required,
+        }
+        impact = {"scenario": scenario, "persona_ids": persona_ids}
+    else:
+        add_ids = patch.get("add_persona_ids", [])
+        remove_ids = patch.get("remove_persona_ids", [])
+        if (
+            not isinstance(add_ids, list)
+            or not isinstance(remove_ids, list)
+            or any(not isinstance(item, str) for item in add_ids + remove_ids)
+        ):
+            raise WorkspaceError("Panel add/remove 必须是 Persona ID 数组")
+        if len(add_ids) != len(set(add_ids)) or len(remove_ids) != len(set(remove_ids)):
+            raise WorkspaceError("Panel add/remove 包含重复 Persona")
+        if set(add_ids) & set(remove_ids):
+            raise WorkspaceError("Panel 不得同时增加和移除同一 Persona")
+        unknown = sorted((set(add_ids) | set(remove_ids)) - set(view["personas"]))
+        if unknown:
+            raise WorkspaceError(f"Panel 引用了未知 Persona：{unknown}")
+        panels["panels"][scenario] = {
+            "kind": "scenario",
+            "label": str(patch.get("label", scenario)),
+            "description": str(patch.get("description", "")),
+            "base": panels["default_panel"],
+            "add_persona_ids": add_ids,
+            "remove_persona_ids": remove_ids,
+            "required_relationships": required,
+        }
+        impact = {"scenario": scenario, "add": add_ids, "remove": remove_ids}
     plan = base_plan("panel_update", workspace, workspace)
     plan["validation_skill_root"] = str(skill_root.resolve())
     plan["sources"] = {str(patch_path.resolve()): sha256_file(patch_path)}
     plan["before"] = {str(view["panels_path"]): sha256_file(view["panels_path"])}
     plan["proposed_files"] = {str(view["panels_path"]): proposed_json(panels)}
-    plan["impact"] = {"scenario": scenario, "add": add_ids, "remove": remove_ids}
+    plan["impact"] = impact
     return write_plan(plan_path, plan, skill_root)
 
 
@@ -590,13 +659,85 @@ def materialize_proposed(value: dict[str, Any]) -> bytes:
     raise WorkspaceError("计划包含无效 proposed file")
 
 
+def validate_change_plan(plan: dict[str, Any]) -> tuple[Path, Path, Path, dict[Path, bytes]]:
+    required = {
+        "schema", "operation", "record_id", "workspace", "record_root",
+        "validation_skill_root", "before", "sources", "proposed_files", "impact",
+    }
+    missing = sorted(required - plan.keys())
+    if missing:
+        raise WorkspaceError(f"变更计划缺少字段：{missing}")
+    if plan.get("schema") != PLAN_SCHEMA:
+        raise WorkspaceError("变更计划 schema 无效")
+    operation = plan.get("operation")
+    if operation not in PLAN_OPERATIONS:
+        raise WorkspaceError(f"不支持的变更计划操作：{operation}")
+    if not isinstance(plan.get("record_id"), str) or not RECORD_ID_PATTERN.fullmatch(plan["record_id"]):
+        raise WorkspaceError("变更计划 record_id 无效")
+    if not isinstance(plan.get("sources"), dict) or not isinstance(plan.get("before"), dict):
+        raise WorkspaceError("变更计划 sources/before 无效")
+    if not isinstance(plan.get("proposed_files"), dict) or not plan["proposed_files"]:
+        raise WorkspaceError("变更计划 proposed_files 无效")
+    if set(plan["before"]) != set(plan["proposed_files"]):
+        raise WorkspaceError("变更计划 before 必须完整覆盖 proposed_files")
+    for expected in plan["sources"].values():
+        if not isinstance(expected, str) or not HASH_PATTERN.fullmatch(expected):
+            raise WorkspaceError("变更计划 source 哈希无效")
+    for expected in plan["before"].values():
+        if expected is not None and (not isinstance(expected, str) or not HASH_PATTERN.fullmatch(expected)):
+            raise WorkspaceError("变更计划 before 哈希无效")
+
+    skill_root = absolute_path(plan["validation_skill_root"], "Skill 根目录")
+    workspace = absolute_path(plan["workspace"], "Workspace")
+    record_root = absolute_path(plan["record_root"], "Change Record 目录")
+    ensure_outside(workspace, skill_root, "私人 Workspace")
+    if record_root != workspace:
+        raise WorkspaceError("Change Record 目录必须等于 Workspace")
+
+    proposed: dict[Path, bytes] = {}
+    for raw, value in plan["proposed_files"].items():
+        target = absolute_path(raw, "变更目标路径")
+        proposed[target] = materialize_proposed(value)
+    if len(proposed) != len(plan["proposed_files"]):
+        raise WorkspaceError("变更计划包含重复目标路径")
+
+    if operation == "workspace_create":
+        if workspace.parent.name != "workspaces":
+            raise WorkspaceError("Workspace 创建目标必须位于 data-home/workspaces 下")
+        index_path = workspace.parent.parent / "index.json"
+        expected_targets = {
+            workspace / "workspace.json",
+            workspace / "personas" / "catalog.json",
+            workspace / "panels.json",
+            index_path,
+        }
+        if set(proposed) != {path.resolve() for path in expected_targets}:
+            raise WorkspaceError("Workspace 创建计划包含非法目标路径")
+    else:
+        view = validate_workspace(skill_root, workspace)
+        if view["manifest"]["storage"] != "private":
+            raise WorkspaceError("变更计划只能写入私人 Workspace")
+        for target in proposed:
+            ensure_within(target, workspace, "变更目标路径")
+        if operation == "panel_update":
+            if set(proposed) != {view["panels_path"].resolve()}:
+                raise WorkspaceError("Panel 计划包含非法目标路径")
+        else:
+            catalog_path = view["catalog_path"].resolve()
+            if catalog_path not in proposed:
+                raise WorkspaceError("Persona 计划必须更新目录")
+            for target in set(proposed) - {catalog_path}:
+                if target.parent != catalog_path.parent or target.suffix != ".md":
+                    raise WorkspaceError("Persona 计划包含非法目标路径")
+    return skill_root, workspace, record_root, proposed
+
+
 def apply_change_plan(plan_path: Path, expected_hash: str) -> dict[str, Any]:
     actual_hash = sha256_file(plan_path)
     if actual_hash != expected_hash:
         raise WorkspaceError("计划哈希不匹配；请重新预览")
     plan = read_json(plan_path)
-    if plan.get("schema") != PLAN_SCHEMA:
-        raise WorkspaceError("变更计划 schema 无效")
+    _, workspace, record_root, proposed = validate_change_plan(plan)
     for raw, expected in plan.get("sources", {}).items():
         path = Path(raw)
         if not path.is_file() or sha256_file(path) != expected:
@@ -606,9 +747,6 @@ def apply_change_plan(plan_path: Path, expected_hash: str) -> dict[str, Any]:
         if digest_or_none(path) != expected:
             raise WorkspaceError(f"目标状态已漂移；请重新预览：{path}")
 
-    workspace = Path(plan["workspace"])
-    record_root = Path(plan["record_root"])
-    proposed = {Path(raw): materialize_proposed(value) for raw, value in plan["proposed_files"].items()}
     originals = {path: path.read_bytes() if path.is_file() else None for path in proposed}
     backup_dir = record_root / "backups" / plan["record_id"]
     backup_dir.mkdir(parents=True, exist_ok=True)

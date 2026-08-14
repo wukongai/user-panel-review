@@ -7,6 +7,9 @@
 - Persona 正式支持新增、更新、派生、停用和恢复；
 - 新增默认 Panel、场景 Panel 和可解释选团；
 - 所有长期变更使用不可变 Preview / Apply、哈希校验、备份、回滚和 Change Record；
+- 文章运行同样改为不可变 Preview / Apply；原文、Workspace、Panel 或 Persona 漂移会在写入前拒绝；
+- 收紧变更计划、Workspace 引用和运行快照路径边界，拒绝越界写入与伪造内置示范来源；
+- 默认 Panel 现在可通过完整 Persona 列表受控维护，场景 Panel 继续保存相对增删；
 - 文章运行新增 Workspace、Panel 与 Stimulus Package 快照，同时保留 0.3 Worker 接口；
 - 旧的安装目录画像写入命令改为拒绝并提供迁移提示；
 - 重写中文 README、使用手册、创建引导和 0.3 → 2.0 迁移说明。

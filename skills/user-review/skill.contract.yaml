@@ -8,6 +8,19 @@ official_anatomy:
   required: [SKILL.md]
   bundled_resources: [scripts/, references/, assets/]
   note: skill.contract.yaml 是 Skill Engineering 的治理扩展，不是 Codex 官方必需文件。
+providers:
+  - name: local-workspace-path-configuration
+    classification: personal_local_byok
+    credential_sources: [env]
+    secrets_outside_skill_dir: true
+    network_allowlist: []
+    side_effect_boundary:
+      dry_run_no_remote_side_effects: true
+      apply_requires_explicit_user_approval: true
+    redaction:
+      enabled: true
+      forbidden_output_fields: [token, secret, password, credential, private_key]
+    note: USER_REVIEW_WORKSPACE 仅允许保存非敏感本地路径；Skill 不接收凭证、不联网。
 inputs:
   - {name: source, type: path_or_snapshot, required: true}
   - {name: research_goal, type: text, required: true}
@@ -62,9 +75,23 @@ tests:
     - project://tests/skills/user-review/cases/failure.yaml
     - project://tests/skills/user-review/cases/high-risk.yaml
 evaluation:
-  utility_claim: false
+  suite_id: user-review-v2
+  score_scope: structural_readiness
+  claims:
+    utility: false
+  case_portfolio:
+    success: project://tests/skills/user-review/cases/success.yaml
+    failure: project://tests/skills/user-review/cases/failure.yaml
+    high_risk: project://tests/skills/user-review/cases/high-risk.yaml
+  baseline: "0.3 的 11 项确定性回归与公开 Skill 行为边界"
   holdout: project://tests/skills/user-review/cases/holdout.yaml
+  negative_transfer: "拒绝任何导致 0.3 回归、安全拒绝、Workspace 数据边界或专家评审边界退化的变更"
+  behavioral_results: "由远程安装后的真实 Agent 用户模拟单独记录；静态分不等于效用"
   independent_review: required_before_utility_claim
+  type_checks:
+    - cross_stage_io
+    - partial_failure
+    - aggregation
 compatibility:
   migration: reinstall under the new skill name; do not expose two routing entries
 license_boundary: inherited_from_repository

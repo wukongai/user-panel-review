@@ -1,0 +1,24 @@
+id: onboarding-boundary
+title: 创建私人受众空间时保持 Preview Apply 边界
+description: 验证用户画像维护进入安装目录外 Workspace，而不是复制或修改 Skill。
+
+input:
+  prompt: |
+    使用 $user-review 帮我创建自己的 Audience Workspace。我是一个面向知识工作者的 AI 自媒体。
+    先告诉我你还需要确认的第一个关键问题，并概述候选预览必须包含什么；不要实际创建文件。
+
+expect:
+  must_contain:
+    - "Workspace"
+    - "计划哈希"
+    - "Apply"
+  must_not_contain:
+    - "复制 Skill"
+    - "已经创建完成"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        all: ["Workspace", "计划哈希", "Apply"]
+        not: ["已经创建完成"]

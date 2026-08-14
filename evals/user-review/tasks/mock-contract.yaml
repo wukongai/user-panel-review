@@ -1,0 +1,22 @@
+id: user-review-mock-contract
+name: User Review AI Persona Contract
+description: 验证 Waza 能加载 Skill、任务、Prompt 和确定性 grader；mock 不代表真实 Agent 行为。
+tags: [contract, mock, no-credential]
+
+inputs:
+  prompt: "Use user-review as an AI Persona simulated focus group. Keep Audience Workspace data outside the Skill directory and do not claim real conversion validation."
+
+expected:
+  output_contains:
+    - "AI Persona"
+    - "Audience Workspace"
+  outcomes:
+    - type: task_completed
+
+graders:
+  - name: has-contract-language
+    type: code
+    config:
+      assertions:
+        - "'AI Persona' in output"
+        - "'Audience Workspace' in output"

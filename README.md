@@ -83,7 +83,10 @@ python3 skills/user-review/scripts/user_review.py panel-recommend \
   --scenario education
 ```
 
-`prepare` 默认只预览；确认后才加 `--apply`。Persona、Panel 和 Workspace 变更也必须使用同一份计划的哈希。
+`prepare` 默认只预览；预览时用 `--plan /absolute/path/prepare-plan.json` 保存不可变计划，确认后执行
+`prepare --plan ... --plan-sha256 ... --apply`。Apply 会拒绝计划、原文、Workspace、Panel 或 Persona 的任何漂移。
+未显式传 `--workspace` 时，`prepare` 仍按上面的统一优先级解析 Workspace，不再回退到旧内容线选择。
+Persona、Panel 和 Workspace 变更同样必须使用同一份计划的哈希。
 
 ## 隐私与边界
 
@@ -95,6 +98,8 @@ python3 skills/user-review/scripts/user_review.py panel-recommend \
 - 不替代真人研究，也不自动修改原文或长期画像。
 
 完整流程见[中文使用手册](docs/user-guide.zh-CN.md)，升级见[0.3 → 2.0 迁移说明](docs/migration-0.3-to-2.0.zh-CN.md)，证据限制见[模拟证据边界](docs/evidence-boundary.zh-CN.md)。
+
+推送前的完整真实文章模拟与工程门禁记录见[2.0 真实文章用户模拟](docs/testing/2026-08-15-user-review-v2-real-article-e2e.md)。原文属于私人内容，没有进入公开仓库。
 
 ## 开发验证
 

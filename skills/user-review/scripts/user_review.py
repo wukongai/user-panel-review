@@ -24,7 +24,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-import audience_workspace as aw
+import audience_workspace as aw  # noqa: E402
 
 
 SIGNALS = {"strong", "medium", "weak", "reject"}
@@ -35,6 +35,7 @@ LIFECYCLE = {"candidate", "reusable", "retired"}
 RELATIONSHIPS = {"core", "adjacent", "challenge", "non_target"}
 KNOWLEDGE_STAGES = {"unaware", "aware", "problem_solving", "experienced"}
 RUN_STATUS = {"partial", "completed", "failed"}
+PREPARE_PLAN_SCHEMA = "user-review-prepare-plan/v1"
 SECRET_PATTERNS = [
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
@@ -267,7 +268,14 @@ def make_run_id(source_hash: str) -> str:
     return f"ur-{stamp}-{source_hash[:8]}"
 
 
-def prepare(args: argparse.Namespace) -> int:
+def require_prepare_preview_args(args: argparse.Namespace) -> None:
+    missing = [name for name in ("skill_root", "source", "goal", "output_dir") if not getattr(args, name, None)]
+    if missing:
+        raise ValidationError(f"prepare 预览缺少参数：{', '.join('--' + name.replace('_', '-') for name in missing)}")
+
+
+def build_prepare_plan(args: argparse.Namespace) -> dict[str, Any]:
+    require_prepare_preview_args(args)
     skill_root = Path(args.skill_root).resolve()
     source = Path(args.source).expanduser().resolve()
     output_dir = Path(args.output_dir).expanduser().resolve()
@@ -277,32 +285,32 @@ def prepare(args: argparse.Namespace) -> int:
     source_text = read_text(source)
     if sensitive_findings(source_text):
         raise ValidationError("原文疑似包含凭证或私钥；请脱敏后再评审")
-    library = load_persona_library(skill_root)
-    workspace_view = None
-    if args.workspace:
-        workspace_view, workspace_selected = aw.panel_persona_files(
-            skill_root, Path(args.workspace).expanduser().resolve(), args.scenario
-        )
-        selected = [
-            {
-                "id": item["id"],
-                "path": item["path"],
-                "meta": validate_persona_file(item["path"], item["id"]),
-                "run_local": False,
-            }
-            for item in workspace_selected
-        ]
-        for raw in args.dynamic_persona:
-            path = Path(raw).expanduser().resolve()
-            meta = validate_persona_file(path)
-            if meta["provenance"] != "synthetic" or meta["validation_status"] != "unvalidated":
-                raise ValidationError("本次运行画像必须是 synthetic 且 unvalidated")
-            selected.append({"id": meta["id"], "path": path, "meta": meta, "run_local": True})
-        all_ids = [item["id"] for item in selected]
-        if not all_ids or len(all_ids) != len(set(all_ids)):
-            raise ValidationError("评审团为空或存在重复 Persona")
-    else:
-        selected = select_personas(skill_root, library, args.content_line, args.persona, args.dynamic_persona)
+    explicit_workspace = Path(args.workspace).expanduser().resolve() if args.workspace else None
+    workspace_view = aw.load_workspace(skill_root, explicit_workspace)
+    panel_id, panel_ids, _ = aw.resolve_panel(workspace_view, args.scenario)
+    selected = []
+    for persona_id in [*panel_ids, *args.persona]:
+        if any(item["id"] == persona_id for item in selected):
+            continue
+        entry = workspace_view["personas"].get(persona_id)
+        if not entry or entry.get("lifecycle") == "retired":
+            raise ValidationError(f"未知或已停用的 Persona：{persona_id}")
+        path = Path(entry["path"])
+        selected.append({
+            "id": persona_id,
+            "path": path,
+            "meta": validate_persona_file(path, persona_id),
+            "run_local": False,
+        })
+    for raw in args.dynamic_persona:
+        path = Path(raw).expanduser().resolve()
+        meta = validate_persona_file(path)
+        if meta["provenance"] != "synthetic" or meta["validation_status"] != "unvalidated":
+            raise ValidationError("本次运行画像必须是 synthetic 且 unvalidated")
+        selected.append({"id": meta["id"], "path": path, "meta": meta, "run_local": True})
+    all_ids = [item["id"] for item in selected]
+    if not all_ids or len(all_ids) != len(set(all_ids)):
+        raise ValidationError("评审团为空或存在重复 Persona")
     source_hash = sha256_file(source)
     object_type = args.object_type
     protocol = "article-reading" if object_type == "article" else "message-testing"
@@ -314,13 +322,13 @@ def prepare(args: argparse.Namespace) -> int:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{2,80}", run_id):
         raise ValidationError("run id 无效")
     run_dir = output_dir / run_id
-    workspace_snapshot = None
-    if workspace_view:
-        workspace_snapshot = {
-            "manifest": workspace_view["manifest"],
-            "panels": workspace_view["panels"],
-            "resolved_scenario": workspace_view["resolved_scenario"],
-        }
+    panel_recommendation = aw.recommend_panel(skill_root, Path(workspace_view["workspace_path"]), panel_id)
+    workspace_snapshot = {
+        "manifest": workspace_view["manifest"],
+        "panels": workspace_view["panels"],
+        "resolved_scenario": panel_id,
+        "panel_recommendation": panel_recommendation,
+    }
     manifest: dict[str, Any] = {
         "schema_version": "2.0",
         "run_id": run_id,
@@ -330,7 +338,7 @@ def prepare(args: argparse.Namespace) -> int:
         "source": {"name": source.name, "sha256": source_hash, "snapshot": "source-snapshot.md"},
         "selection": {
             "content_line": args.content_line,
-            "scenario": workspace_view["resolved_scenario"] if workspace_view else None,
+            "scenario": panel_id,
             "explainable": True,
         },
         "stimulus": {
@@ -339,22 +347,21 @@ def prepare(args: argparse.Namespace) -> int:
             "modality": "text",
             "protocol": protocol,
             "research_goal": args.goal,
-            "exposure_context": {"scenario": workspace_view["resolved_scenario"] if workspace_view else None},
+            "exposure_context": {"scenario": panel_id},
             "source_hash": source_hash,
             "evidence_label": evidence_label,
         },
         "panel": {"planned_count": len(selected), "worker_count": len(selected), "quorum": quorum, "personas": []},
         "evidence": {"kind": "synthetic", "utility_claim": "not-evaluated"},
     }
-    if workspace_view and workspace_snapshot:
-        snapshot_bytes = (json.dumps(workspace_snapshot, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-        manifest["workspace"] = {
-            "id": workspace_view["manifest"]["id"],
-            "name": workspace_view["manifest"]["name"],
-            "source": workspace_view["source"],
-            "snapshot": "workspace-snapshot.json",
-            "snapshot_sha256": sha256_bytes(snapshot_bytes),
-        }
+    snapshot_bytes = (json.dumps(workspace_snapshot, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    manifest["workspace"] = {
+        "id": workspace_view["manifest"]["id"],
+        "name": workspace_view["manifest"]["name"],
+        "source": workspace_view["source"],
+        "snapshot": "workspace-snapshot.json",
+        "snapshot_sha256": sha256_bytes(snapshot_bytes),
+    }
     for index, item in enumerate(selected, start=1):
         result_id = f"worker-{index:02d}-{item['id']}"
         manifest["panel"]["personas"].append({
@@ -366,21 +373,174 @@ def prepare(args: argparse.Namespace) -> int:
             "worker_result_id": result_id, "worker_result": f"workers/{result_id}.json",
             "worker_status": "queued", "attempt": 0,
         })
-    preview = {"apply": bool(args.apply), "run_dir": str(run_dir), "manifest": manifest}
-    if not args.apply:
-        print(json.dumps(preview, ensure_ascii=False, indent=2))
-        return 0
+    inputs = {
+        str(path.resolve()): sha256_file(path)
+        for path in {
+            source,
+            Path(workspace_view["manifest_path"]),
+            Path(workspace_view["panels_path"]),
+            Path(workspace_view["catalog_path"]),
+            *(item["path"] for item in selected),
+        }
+    }
+    return {
+        "schema": PREPARE_PLAN_SCHEMA,
+        "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "skill_root": str(skill_root),
+        "output_dir": str(output_dir),
+        "run_dir": str(run_dir),
+        "source_path": str(source),
+        "inputs": inputs,
+        "manifest": manifest,
+        "workspace_snapshot": workspace_snapshot,
+        "personas": [
+            {"id": item["id"], "path": str(item["path"]), "snapshot": f"personas/{item['id']}.md"}
+            for item in selected
+        ],
+    }
+
+
+def validate_prepare_plan_semantics(plan: dict[str, Any]) -> None:
+    try:
+        if plan.get("schema") != PREPARE_PLAN_SCHEMA:
+            raise ValidationError("schema 无效")
+        skill_root = Path(plan["skill_root"])
+        if str(skill_root) != str(skill_root.resolve()) or skill_root != SCRIPT_DIR.parent.resolve():
+            raise ValidationError("Skill 根目录无效")
+        manifest = plan["manifest"]
+        if not isinstance(manifest, dict):
+            raise ValidationError("manifest 无效")
+        run_id = manifest["run_id"]
+        if not isinstance(run_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{2,80}", run_id):
+            raise ValidationError("run id 无效")
+        output_dir = Path(plan["output_dir"])
+        run_dir = Path(plan["run_dir"])
+        if str(output_dir) != str(output_dir.resolve()) or str(run_dir) != str(run_dir.resolve()):
+            raise ValidationError("输出路径必须是规范绝对路径")
+        if run_dir != output_dir / run_id:
+            raise ValidationError("run_dir 必须等于 output_dir/run_id")
+        ensure_outside(output_dir, skill_root, "输出目录")
+
+        inputs = plan["inputs"]
+        if not isinstance(inputs, dict) or not inputs:
+            raise ValidationError("缺少输入哈希")
+        for raw, digest in inputs.items():
+            if not isinstance(raw, str) or raw != str(Path(raw).resolve()):
+                raise ValidationError("输入路径必须是规范绝对路径")
+            if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+                raise ValidationError("输入哈希无效")
+
+        source_path = Path(plan["source_path"])
+        if str(source_path) != str(source_path.resolve()):
+            raise ValidationError("原文路径必须是规范绝对路径")
+        source_hash = inputs.get(str(source_path))
+        source_manifest = manifest["source"]
+        stimulus = manifest["stimulus"]
+        if (
+            not source_hash
+            or source_manifest.get("sha256") != source_hash
+            or source_manifest.get("snapshot") != "source-snapshot.md"
+            or stimulus.get("source_hash") != source_hash
+        ):
+            raise ValidationError("manifest 原文哈希与计划不一致")
+
+        workspace_snapshot = plan["workspace_snapshot"]
+        workspace_manifest = manifest["workspace"]
+        if not isinstance(workspace_snapshot, dict) or workspace_manifest.get("snapshot") != "workspace-snapshot.json":
+            raise ValidationError("Workspace 快照契约无效")
+        workspace_bytes = (json.dumps(workspace_snapshot, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+        if workspace_manifest.get("snapshot_sha256") != sha256_bytes(workspace_bytes):
+            raise ValidationError("Workspace 快照哈希与计划不一致")
+
+        personas = plan["personas"]
+        manifest_personas = manifest["panel"]["personas"]
+        if not isinstance(personas, list) or not isinstance(manifest_personas, list):
+            raise ValidationError("Persona 快照列表无效")
+        if len(personas) != len(manifest_personas) or manifest["panel"].get("planned_count") != len(personas):
+            raise ValidationError("Persona 数量与 manifest 不一致")
+        if manifest["panel"].get("worker_count") != len(personas):
+            raise ValidationError("Worker 数量与 Persona 不一致")
+        seen: set[str] = set()
+        for item, manifest_item in zip(personas, manifest_personas):
+            persona_id = item["id"]
+            if not isinstance(persona_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,62}", persona_id):
+                raise ValidationError("Persona ID 无效")
+            if persona_id in seen:
+                raise ValidationError("Persona ID 重复")
+            seen.add(persona_id)
+            snapshot = f"personas/{persona_id}.md"
+            if item.get("snapshot") != snapshot or manifest_item.get("snapshot") != snapshot:
+                raise ValidationError("Persona snapshot 路径无效")
+            persona_path = Path(item["path"])
+            if str(persona_path) != str(persona_path.resolve()):
+                raise ValidationError("Persona 输入路径必须是规范绝对路径")
+            persona_hash = inputs.get(str(persona_path))
+            if (
+                manifest_item.get("id") != persona_id
+                or not persona_hash
+                or manifest_item.get("snapshot_sha256") != persona_hash
+            ):
+                raise ValidationError("Persona 快照哈希与计划不一致")
+    except (KeyError, TypeError) as exc:
+        raise ValidationError(f"字段缺失或类型错误：{exc}") from exc
+
+
+def apply_prepare_plan(plan: dict[str, Any]) -> dict[str, Any]:
+    try:
+        validate_prepare_plan_semantics(plan)
+    except ValidationError as exc:
+        raise ValidationError(f"prepare 计划语义无效：{exc}") from exc
+    skill_root = Path(str(plan.get("skill_root", ""))).resolve()
+    run_dir = Path(str(plan.get("run_dir", ""))).resolve()
+    ensure_outside(run_dir, skill_root, "输出目录")
+    inputs = plan.get("inputs")
+    if not isinstance(inputs, dict) or not inputs:
+        raise ValidationError("prepare 计划缺少输入哈希")
+    for raw, expected in inputs.items():
+        path = Path(raw)
+        if not path.is_file() or sha256_file(path) != expected:
+            raise ValidationError(f"prepare 输入已漂移；请重新预览：{path}")
     if run_dir.exists():
         raise ValidationError(f"运行目录已存在：{run_dir}")
-    (run_dir / "personas").mkdir(parents=True)
-    (run_dir / "workers").mkdir()
-    shutil.copyfile(source, run_dir / "source-snapshot.md")
-    if workspace_snapshot:
-        write_json(run_dir / "workspace-snapshot.json", workspace_snapshot)
-    for item in selected:
-        shutil.copyfile(item["path"], run_dir / "personas" / f"{item['id']}.md")
-    write_json(run_dir / "manifest.json", manifest)
-    print(json.dumps({"created": str(run_dir), "run_id": run_id}, ensure_ascii=False))
+    temp_dir = run_dir.with_name(f".{run_dir.name}.prepare.tmp")
+    if temp_dir.exists():
+        raise ValidationError(f"prepare 临时目录已存在：{temp_dir}")
+    try:
+        (temp_dir / "personas").mkdir(parents=True)
+        (temp_dir / "workers").mkdir()
+        shutil.copyfile(Path(plan["source_path"]), temp_dir / "source-snapshot.md")
+        write_json(temp_dir / "workspace-snapshot.json", plan["workspace_snapshot"])
+        for item in plan["personas"]:
+            shutil.copyfile(Path(item["path"]), temp_dir / item["snapshot"])
+        write_json(temp_dir / "manifest.json", plan["manifest"])
+        run_dir.parent.mkdir(parents=True, exist_ok=True)
+        temp_dir.rename(run_dir)
+    except Exception:
+        if temp_dir.exists():
+            shutil.rmtree(temp_dir)
+        raise
+    return {"created": str(run_dir), "run_id": plan["manifest"]["run_id"]}
+
+
+def prepare(args: argparse.Namespace) -> int:
+    if args.apply:
+        if not args.plan or not args.plan_sha256:
+            raise ValidationError("prepare Apply 必须提供已预览的 --plan 和 --plan-sha256")
+        plan_path = Path(args.plan).expanduser().resolve()
+        if sha256_file(plan_path) != args.plan_sha256:
+            raise ValidationError("prepare 计划哈希不匹配；请重新预览")
+        result = apply_prepare_plan(read_json(plan_path))
+        print(json.dumps(result, ensure_ascii=False))
+        return 0
+
+    plan = build_prepare_plan(args)
+    preview = {"apply": bool(args.apply), "run_dir": plan["run_dir"], "manifest": plan["manifest"]}
+    if args.plan:
+        plan_path = Path(args.plan).expanduser().resolve()
+        ensure_outside(plan_path, Path(plan["skill_root"]), "prepare 计划")
+        write_json(plan_path, plan)
+        preview.update({"plan": str(plan_path), "plan_sha256": sha256_file(plan_path)})
+    print(json.dumps(preview, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -564,7 +724,7 @@ def validate_skill(skill_root: Path) -> dict[str, Any]:
         "references/demo-workspace/panels.json", "references/schemas/workspace.schema.json",
         "references/schemas/panels.schema.json", "references/schemas/change-plan.schema.json",
         "references/schemas/change-record.schema.json", "references/schemas/stimulus.schema.json",
-        "references/onboarding.md", "references/architecture.md",
+        "references/onboarding.md", "references/architecture.md", "references/index.md",
         "references/reviewer-protocol.md", "references/persona-governance.md", "references/evidence-policy.md",
         "references/aggregation-policy.md", "references/host-adapters.md", "references/personas/catalog.json",
         "references/audience-maps.json", "references/schemas/persona.schema.json",
@@ -610,11 +770,11 @@ def build_parser() -> argparse.ArgumentParser:
     recommend.add_argument("--goal", required=True)
     recommend.add_argument("--platform", default="")
     prepare_parser = sub.add_parser("prepare", help="预览或创建不可变评审运行")
-    prepare_parser.add_argument("--skill-root", required=True)
-    prepare_parser.add_argument("--source", required=True)
+    prepare_parser.add_argument("--skill-root")
+    prepare_parser.add_argument("--source")
     prepare_parser.add_argument("--object-type", choices=["article", "advertisement"], default="article")
-    prepare_parser.add_argument("--goal", required=True)
-    prepare_parser.add_argument("--output-dir", required=True)
+    prepare_parser.add_argument("--goal")
+    prepare_parser.add_argument("--output-dir")
     prepare_parser.add_argument("--content-line")
     prepare_parser.add_argument("--workspace")
     prepare_parser.add_argument("--scenario", default="default")
@@ -622,6 +782,8 @@ def build_parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("--dynamic-persona", action="append", default=[])
     prepare_parser.add_argument("--quorum", type=int)
     prepare_parser.add_argument("--run-id")
+    prepare_parser.add_argument("--plan")
+    prepare_parser.add_argument("--plan-sha256")
     prepare_parser.add_argument("--apply", action="store_true")
     plan = sub.add_parser("persona-plan", help="预览保存本次运行画像")
     plan.add_argument("--persona", required=True)

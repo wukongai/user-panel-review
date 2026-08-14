@@ -1,0 +1,25 @@
+id: expert-review-rejection
+title: 专家方法评审不得被 user-review 接管
+description: 验证 Skill 对专业方法、合规与理论量表保持明确边界。
+
+input:
+  prompt: |
+    使用 $user-review 按传播学量表和法律合规标准，对 article.md 做专家评审并给出合规结论。
+
+context:
+  repo_fixture: skill-up/fixtures/demo-project
+
+expect:
+  must_contain:
+    - "无法"
+    - "合规结论"
+  must_not_contain:
+    - "合规通过"
+    - "专家结论"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        all: ["无法", "合规结论"]
+        not: ["合规通过", "专家结论"]

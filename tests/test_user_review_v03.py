@@ -30,6 +30,19 @@ class UserReviewV03Tests(unittest.TestCase):
     def setUpClass(cls):
         cls.module = load_module()
 
+    def prepare_apply(self, plan: Path, *args: str):
+        subprocess.run(
+            [sys.executable, str(SCRIPT), "prepare", *args, "--plan", str(plan)],
+            check=True, text=True, encoding="utf-8", capture_output=True,
+        )
+        return subprocess.run(
+            [
+                sys.executable, str(SCRIPT), "prepare", "--plan", str(plan),
+                "--plan-sha256", self.module.sha256_file(plan), "--apply",
+            ],
+            check=True, text=True, encoding="utf-8", capture_output=True,
+        )
+
     def test_identity_and_expert_boundary(self):
         self.assertEqual(self.module.validate_skill(SKILL)["status"], "valid")
         text = "\n".join(
@@ -75,14 +88,12 @@ class UserReviewV03Tests(unittest.TestCase):
             output = tmp / "runs"
             source = FIXTURES / "article-short.md"
             dynamic = FIXTURES / "dynamic-persona.md"
-            completed = subprocess.run(
-                [
-                    sys.executable, str(SCRIPT), "prepare", "--skill-root", str(SKILL),
-                    "--source", str(source), "--goal", "找出普通读者的理解障碍",
-                    "--output-dir", str(output), "--content-line", "ai-content",
-                    "--dynamic-persona", str(dynamic), "--run-id", "v03-run", "--apply",
-                ],
-                check=True, text=True, encoding="utf-8", capture_output=True,
+            completed = self.prepare_apply(
+                tmp / "prepare-plan.json",
+                "--skill-root", str(SKILL), "--source", str(source),
+                "--goal", "找出普通读者的理解障碍", "--output-dir", str(output),
+                "--content-line", "ai-content", "--dynamic-persona", str(dynamic),
+                "--run-id", "v03-run",
             )
             self.assertEqual(json.loads(completed.stdout)["run_id"], "v03-run")
             run = output / "v03-run"
@@ -168,12 +179,12 @@ class UserReviewV03Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             tmp = Path(raw)
             run_dir = tmp / "runs" / "worker-check"
-            subprocess.run([
-                sys.executable, str(SCRIPT), "prepare", "--skill-root", str(SKILL),
-                "--source", str(FIXTURES / "article-short.md"), "--goal", "评审",
-                "--output-dir", str(tmp / "runs"), "--persona", "ai-01-scroller",
-                "--run-id", "worker-check", "--apply",
-            ], check=True, text=True, encoding="utf-8", capture_output=True)
+            self.prepare_apply(
+                tmp / "prepare-plan.json",
+                "--skill-root", str(SKILL), "--source", str(FIXTURES / "article-short.md"),
+                "--goal", "评审", "--output-dir", str(tmp / "runs"),
+                "--persona", "ai-01-scroller", "--run-id", "worker-check",
+            )
             manifest_path = run_dir / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             persona = manifest["panel"]["personas"][0]
@@ -200,12 +211,12 @@ class UserReviewV03Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             tmp = Path(raw)
             run_dir = tmp / "runs" / "partial-check"
-            subprocess.run([
-                sys.executable, str(SCRIPT), "prepare", "--skill-root", str(SKILL),
-                "--source", str(FIXTURES / "article-short.md"), "--goal", "评审",
-                "--output-dir", str(tmp / "runs"), "--content-line", "ai-content",
-                "--run-id", "partial-check", "--apply",
-            ], check=True, text=True, encoding="utf-8", capture_output=True)
+            self.prepare_apply(
+                tmp / "prepare-plan.json",
+                "--skill-root", str(SKILL), "--source", str(FIXTURES / "article-short.md"),
+                "--goal", "评审", "--output-dir", str(tmp / "runs"),
+                "--content-line", "ai-content", "--run-id", "partial-check",
+            )
             manifest_path = run_dir / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             ids = [item["worker_result_id"] for item in manifest["panel"]["personas"]]
@@ -228,12 +239,12 @@ class UserReviewV03Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             tmp = Path(raw)
             run_dir = tmp / "runs" / "reference-check"
-            subprocess.run([
-                sys.executable, str(SCRIPT), "prepare", "--skill-root", str(SKILL),
-                "--source", str(FIXTURES / "article-short.md"), "--goal", "评审",
-                "--output-dir", str(tmp / "runs"), "--persona", "ai-01-scroller",
-                "--run-id", "reference-check", "--apply",
-            ], check=True, text=True, encoding="utf-8", capture_output=True)
+            self.prepare_apply(
+                tmp / "prepare-plan.json",
+                "--skill-root", str(SKILL), "--source", str(FIXTURES / "article-short.md"),
+                "--goal", "评审", "--output-dir", str(tmp / "runs"),
+                "--persona", "ai-01-scroller", "--run-id", "reference-check",
+            )
             manifest_path = run_dir / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             worker_id = manifest["panel"]["personas"][0]["worker_result_id"]

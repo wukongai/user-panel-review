@@ -1,0 +1,7 @@
+paths:
+  skills: skills/
+  evals: evals/
+tokens:
+  limits:
+    overrides:
+      "SKILL.md": 1500

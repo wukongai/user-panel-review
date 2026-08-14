@@ -157,10 +157,16 @@ python3 skills/user-review/scripts/user_review.py prepare \
   --scenario education \
   --source /absolute/path/article.md \
   --goal "检查理解、感受与信任" \
-  --output-dir /absolute/path/review-runs
+  --output-dir /absolute/path/review-runs \
+  --plan /absolute/path/prepare-plan.json
+
+python3 skills/user-review/scripts/user_review.py prepare \
+  --plan /absolute/path/prepare-plan.json \
+  --plan-sha256 <预览输出中的哈希> \
+  --apply
 ```
 
-`prepare` 默认只预览，明确确认后才加 `--apply`。Workspace 使用 `workspace-plan`，画像使用 `persona-change-plan`，Panel 使用 `panel-change-plan`；统一用 `change-apply --plan ... --plan-sha256 ...` 应用。
+`prepare` 默认只预览，并把预览保存为不可变计划；明确确认后必须用同一 `--plan` 和 `--plan-sha256` Apply。预览后原文、Workspace、Panel 或 Persona 漂移都会拒绝写入并要求重新预览。省略 `--workspace` 时仍按 `USER_REVIEW_WORKSPACE`、active index、示范 Workspace 的顺序解析，不走旧内容线旁路。Workspace 使用 `workspace-plan`，画像使用 `persona-change-plan`，Panel 使用 `panel-change-plan`；统一用 `change-apply --plan ... --plan-sha256 ...` 应用。
 
 ## 10. 备份、隐私与排错
 

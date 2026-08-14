@@ -1,0 +1,27 @@
+id: demo-article-preview
+title: 用只读示范 Workspace 预览真实文章评审
+description: 验证 Skill 识别文章评审、使用示范受众、解释选团且不把模拟说成真人研究。
+
+input:
+  prompt: |
+    使用 $user-review 的示范 Audience Workspace，评审当前工作区的 article.md。
+    这是微信公众号 AI 文章。只完成评审前预览：说明选择了哪些 Persona、每个入选原因、能力边界和下一步确认点；不要修改文章，不要把模拟说成真实焦点小组。
+
+context:
+  repo_fixture: skill-up/fixtures/demo-project
+
+expect:
+  must_contain:
+    - "Workspace"
+    - "Persona"
+    - "模拟"
+  must_not_contain:
+    - "真实焦点小组已经"
+    - "转化率将"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        all: ["Workspace", "Persona", "模拟"]
+        not: ["真实焦点小组已经", "转化率将"]

@@ -83,6 +83,12 @@ class UserReviewV20Tests(unittest.TestCase):
         self.assertEqual(panels["default_panel"], "default")
         self.assertGreaterEqual(len(panels["panels"]["default"]["persona_ids"]), 4)
 
+        explicit = json.loads(run_cli(
+            "workspace-show", "--skill-root", str(SKILL),
+            "--workspace", str(SKILL / "references/demo-workspace"),
+        ).stdout)
+        self.assertEqual(explicit["source"], "builtin")
+
     def test_no_private_workspace_falls_back_to_demo_without_write(self):
         with tempfile.TemporaryDirectory() as raw:
             home = Path(raw) / "clean-home"
@@ -240,11 +246,14 @@ class UserReviewV20Tests(unittest.TestCase):
             self.add_persona(workspace, tmp)
             self.apply_decision_panel(workspace, tmp)
             output = tmp / "runs"
+            plan = tmp / "prepare-plan.json"
             run_cli(
                 "prepare", "--skill-root", str(SKILL), "--source", str(FIXTURES / "article-short.md"),
                 "--goal", "检查目标读者的理解与信任", "--output-dir", str(output),
-                "--workspace", str(workspace), "--scenario", "decision", "--run-id", "workspace-run", "--apply",
+                "--workspace", str(workspace), "--scenario", "decision", "--run-id", "workspace-run",
+                "--plan", str(plan),
             )
+            run_cli("prepare", "--plan", str(plan), "--plan-sha256", self.module.sha256_file(plan), "--apply")
             run_dir = output / "workspace-run"
             manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["stimulus"]["object_type"], "article")

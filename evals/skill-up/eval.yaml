@@ -1,0 +1,37 @@
+schema_version: v1alpha1
+
+environment:
+  type: none
+
+mcp:
+  servers: []
+
+skills:
+  - source: local_path
+    path: ../skills/user-review
+
+engine:
+  name: codex
+  model: {}
+
+cases:
+  files:
+    - skill-up/cases/demo-article-preview.yaml
+    - skill-up/cases/onboarding-boundary.yaml
+    - skill-up/cases/expert-review-rejection.yaml
+  defaults:
+    timeout_seconds: 600
+    max_turns: 8
+  parallelism: 1
+  retry_policy:
+    max_retries: 0
+
+benchmark:
+  enabled: false
+
+judge:
+  type: rule_based
+
+report:
+  formats: [json]
+  artifacts: [transcript]

@@ -1,0 +1,30 @@
+name: user-review-contract-eval
+description: 使用 Waza mock executor 校验 user-review 评测结构与无凭证执行链。
+skill: user-review
+schemaVersion: "1.0"
+version: "2.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 60
+  parallel: false
+  executor: mock
+  model: mock
+
+metrics:
+  - name: contract_readiness
+    weight: 1.0
+    threshold: 1.0
+    description: 任务、Skill 和评测配置可由 Waza 完整装载。
+
+graders:
+  - type: text
+    name: evidence-boundary-present
+    config:
+      regex_match:
+        - "AI Persona"
+      regex_not_match:
+        - "真实转化已验证"
+
+tasks:
+  - "tasks/*.yaml"
