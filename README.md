@@ -24,6 +24,8 @@ npx skills add wukongai/user-review
 先介绍这次会模拟哪些用户，等我确认后再开始。
 ```
 
+确认时只要说“确认开始，请反馈这篇文章”。你不需要在提示词里规定报告格式；Skill 默认会自动整理为共同反馈、不同意见、值得保留、最需要修改、需要真人验证。
+
 ### 2. 改成我的长期目标用户
 
 ```text
@@ -78,7 +80,7 @@ Agent 会把你的回答整理成几类长期目标用户。你可以直接说�
 - 不包含专家评审方法，不负责事实、医学、心理、合规、代码或产品需求评审；
 - 当前完成真实回归的内容类型是文章，其他类型不提前声明支持。
 
-完整操作见[中文使用手册](docs/user-guide.zh-CN.md)。需要命令行、数据目录、迁移或排障时再读[开发者指南](docs/developer-guide.zh-CN.md)。证据限制见[模拟证据边界](docs/evidence-boundary.zh-CN.md)。
+完整操作见[仓库内中文使用手册](docs/user-guide.zh-CN.md)，也可以直接打开[布丁在线小白手册](https://aixiaoai.cloud/cases/cmswf60d0004dpo9w2jj7oebj)。需要命令行、数据目录、迁移或排障时再读[开发者指南](docs/developer-guide.zh-CN.md)。证据限制见[模拟证据边界](docs/evidence-boundary.zh-CN.md)。
 
 ## 开发与贡献
 
