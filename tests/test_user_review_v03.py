@@ -171,6 +171,9 @@ class UserReviewV03Tests(unittest.TestCase):
         worker = json.loads((SKILL / "assets" / "worker-result-template.json").read_text(encoding="utf-8"))
         synthesis = json.loads((SKILL / "assets" / "synthesis-template.json").read_text(encoding="utf-8"))
         self.assertEqual(worker["reviewer_kind"], "persona")
+        self.assertEqual(worker["persona_provenance"], "<provenance-from-manifest>")
+        protocol = (SKILL / "references" / "reviewer-protocol.md").read_text(encoding="utf-8")
+        self.assertIn("必须逐字复制 manifest 中该用户的 provenance", protocol)
         self.assertNotIn("method_observations", worker)
         self.assertNotIn("professional_risks", synthesis)
         self.assertNotIn("method_findings", synthesis)
@@ -203,6 +206,16 @@ class UserReviewV03Tests(unittest.TestCase):
             result.write_text(json.dumps(worker, ensure_ascii=False), encoding="utf-8")
             self.assertEqual(self.module.validate_worker(manifest_path, result)["persona_id"], "ai-01-scroller")
             worker["relevance"] = "预计点击率提高 20%"
+            result.write_text(json.dumps(worker, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaises(self.module.ValidationError):
+                self.module.validate_worker(manifest_path, result)
+
+            worker["relevance"] = "与工作相关"
+            worker["limitations"] = ["没有真实点击率、完读率或转化率数据，不能预测平台表现。"]
+            result.write_text(json.dumps(worker, ensure_ascii=False), encoding="utf-8")
+            self.assertEqual(self.module.validate_worker(manifest_path, result)["persona_id"], "ai-01-scroller")
+
+            worker["limitations"] = ["预计点击率会明显提高。"]
             result.write_text(json.dumps(worker, ensure_ascii=False), encoding="utf-8")
             with self.assertRaises(self.module.ValidationError):
                 self.module.validate_worker(manifest_path, result)
