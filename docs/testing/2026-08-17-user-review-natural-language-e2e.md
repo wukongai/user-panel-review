@@ -119,3 +119,28 @@ Skill Engineering lint: 0 error, 0 warning
 ```
 
 Doctor 分数只表示静态结构准备度；真实 Agent 行为仍以 Skill Up 4/4 和本次连续用户体验作为不同层次的证据，二者都不证明真人效用。
+
+## 默认五栏展示补充回归
+
+远程安装后的真实会话中，用户只说“确认开始，请反馈这篇文章”时，Skill 能完成四类模拟用户反馈，但最终标题没有稳定使用公开手册约定的五栏。按 TDD 新增失败用例，并在隔离候选中把根因定位到普通用户输出接口，而不是要求用户补写提示词。
+
+Skill Engineering 生成并应用同一份不可变维护计划：
+
+- plan：`improve-20260816225514-607479a2`；
+- plan hash：`e8ef10dd445b7c7cc56399ffed2219898d32edc2128daeb8e6cb032f291ddb3b`；
+- maintenance record：`maintenance-20260816225522-b3902ed1`；
+- 修改 2 个文件，删除 0 个文件，preflight、postflight、自动 verify 均通过，保留回滚备份。
+
+随后在全新隔离安装中重新执行同一句确认语。四类模拟用户独立完成，四份 Worker 与汇总均通过校验；最终回答自动使用 `共同反馈`、`不同意见`、`值得保留`、`最需要修改`、`需要真人验证`，用户没有在提示词中指定这些栏目。公开转录与 `01-demo.png` 已替换为这次真实输出。
+
+最新发布门禁：
+
+```text
+pytest: 44 passed, 4 subtests passed
+Ruff: All checks passed
+Skill validation: valid, 8 personas, 2 content lines, 43 files
+gitleaks 8.30.1: 24 commits scanned, no leaks found
+git diff --check: exit 0
+Skill Engineering production Doctor: 100/A, 0 failure, 0 warning
+Skill Engineering lint: 0 error, 0 warning
+```

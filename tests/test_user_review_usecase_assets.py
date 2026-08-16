@@ -25,6 +25,13 @@ class PublicUseCaseAssetTests(unittest.TestCase):
             self.assertGreaterEqual(len(stage["turns"]), 2)
             self.assertEqual(stage["turns"][0]["role"], "user")
 
+        demo = next(item for item in value["stages"] if item["id"] == "demo")
+        confirmations = [turn["text"] for turn in demo["turns"] if turn["role"] == "user"][1:]
+        self.assertIn("确认开始，请反馈这篇文章。", confirmations)
+        assistant_text = "\n".join(turn["text"] for turn in demo["turns"] if turn["role"] == "assistant")
+        for heading in ["共同反馈", "不同意见", "值得保留", "最需要修改", "需要真人验证"]:
+            self.assertIn(heading, assistant_text)
+
     @unittest.skipUnless(importlib.util.find_spec("PIL"), "截图文档构建需要 Pillow")
     def test_renderer_recreates_five_png_screenshots(self):
         spec = importlib.util.spec_from_file_location("render_chat_screenshots", RENDERER)

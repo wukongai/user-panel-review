@@ -51,6 +51,12 @@ class NaturalLanguageUxContractTests(unittest.TestCase):
         self.assertIn("# 模拟目标用户反馈", report)
         self.assertNotIn("# 模拟用户评审报告", report)
 
+    def test_default_public_feedback_has_stable_beginner_headings(self):
+        root = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+        for heading in ["共同反馈", "不同意见", "值得保留", "最需要修改", "需要真人验证"]:
+            self.assertIn(f"`{heading}`", root)
+        self.assertIn("用户不需要在提示词里指定这些栏目", root)
+
 
 if __name__ == "__main__":
     unittest.main()
