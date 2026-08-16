@@ -46,10 +46,27 @@ FORBIDDEN_METRIC_PATTERNS = [
     re.compile(r"\bconversion rate\b", re.IGNORECASE),
     re.compile(r"转化率|完读率|点击率"),
 ]
+METRIC_BOUNDARY_NEGATION = re.compile(
+    r"没有真实|没有(?:任何)?|无真实|未有|不能|无法|不预测|不评估|不可推断|"
+    r"no real|cannot|can't|do not predict|not evaluated",
+    re.IGNORECASE,
+)
 
 
 class ValidationError(ValueError):
     """公开契约校验失败。"""
+
+
+def contains_unsupported_metric_claim(text: str) -> bool:
+    """拒绝指标预测，但允许明确说明没有真实指标数据或预测能力。"""
+    if re.search(r"(?<!\d)\d{1,3}%", text):
+        return True
+    clauses = re.split(r"[。！？；;\n]|，但|,\s*but\b", text, flags=re.IGNORECASE)
+    for clause in clauses:
+        if any(pattern.search(clause) for pattern in FORBIDDEN_METRIC_PATTERNS):
+            if not METRIC_BOUNDARY_NEGATION.search(clause):
+                return True
+    return False
 
 
 def configure_cli_streams() -> None:
@@ -627,7 +644,7 @@ def validate_worker(manifest_path: Path, result_path: Path) -> dict[str, Any]:
                 raise ValidationError(f"{group}[{index}] 缺少 claim")
             validate_anchor(item.get("anchor"), source_lines, f"{group}[{index}]")
     for key, text in iter_text(result):
-        if any(pattern.search(text) for pattern in FORBIDDEN_METRIC_PATTERNS) or re.search(r"(?<!\d)\d{1,3}%", text):
+        if contains_unsupported_metric_claim(text):
             raise ValidationError(f"Worker 字段包含不支持的量化主张：{key}")
     return result
 
@@ -669,7 +686,7 @@ def validate_synthesis(manifest_path: Path, synthesis_path: Path) -> dict[str, A
             if not isinstance(refs, list) or not refs or not set(refs) <= planned:
                 raise ValidationError(f"{group}[{index}] 的 worker_result_ids 无效")
     for key, text in iter_text(result):
-        if any(pattern.search(text) for pattern in FORBIDDEN_METRIC_PATTERNS) or re.search(r"(?<!\d)\d{1,3}%", text):
+        if contains_unsupported_metric_claim(text):
             raise ValidationError(f"汇总字段包含不支持的量化主张：{key}")
     return result
 

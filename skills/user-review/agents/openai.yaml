@@ -1,4 +1,4 @@
 interface:
-  display_name: "用户评审"
-  short_description: "维护长期目标受众，用模拟焦点小组评审文章"
-  default_prompt: "使用 $user-review 读取我的 Audience Workspace，为这篇文章按场景推荐目标用户 Panel；先预览入选理由，确认后生成可追溯的模拟反馈报告。"
+  display_name: "目标用户反馈"
+  short_description: "模拟目标用户，反馈他们如何理解、信任或拒绝你的内容"
+  default_prompt: "使用 $user-review，让我的目标用户看看这篇文章。先用普通语言说明这次会模拟哪些用户和原因，等我确认后再生成反馈。"

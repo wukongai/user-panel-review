@@ -26,6 +26,8 @@ Worker 只接收：研究目标、目标受众可直接体验的刺激物快照�
 
 严格使用 `assets/worker-result-template.json`。`frictions`、`trust_triggers`、`rejection_triggers` 和 `preserve` 中的每项只能使用以下形状：
 
+必须逐字复制 manifest 中该用户的 provenance 与 version，分别写入 `persona_provenance` 与 `persona_version`；不得沿用模板占位值或自行推断。
+
 ```json
 {
   "claim": "以该 Persona 口吻写出的判断",

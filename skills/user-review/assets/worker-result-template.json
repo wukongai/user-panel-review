@@ -6,7 +6,7 @@
   "source_sha256": "<sha256>",
   "persona_id": "<persona-id>",
   "persona_version": "<version>",
-  "persona_provenance": "synthetic",
+  "persona_provenance": "<provenance-from-manifest>",
   "status": "completed",
   "coverage": {"mode": "full", "covered_sections": [], "omitted_sections": []},
   "synthetic_signal": "medium",
