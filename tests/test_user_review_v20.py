@@ -291,9 +291,11 @@ class UserReviewV20Tests(unittest.TestCase):
     def test_public_manual_teaches_data_customization_not_skill_fork(self):
         root = (SKILL / "SKILL.md").read_text(encoding="utf-8")
         guide = (ROOT / "docs" / "user-guide.zh-CN.md").read_text(encoding="utf-8")
+        developer_guide = ROOT / "docs" / "developer-guide.zh-CN.md"
         combined = root + "\n" + guide
-        self.assertIn("Audience Workspace", combined)
-        self.assertIn("示范", combined)
+        self.assertIn("内置示例用户", combined)
+        self.assertIn("我的长期目标用户", combined)
+        self.assertTrue(developer_guide.is_file())
         self.assertNotIn("创建一个属于我的项目级 Skill 副本", combined)
         self.assertNotIn("methods catalog", combined)
 
