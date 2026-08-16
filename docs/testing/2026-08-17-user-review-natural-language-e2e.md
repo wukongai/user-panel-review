@@ -144,3 +144,22 @@ git diff --check: exit 0
 Skill Engineering production Doctor: 100/A, 0 failure, 0 warning
 Skill Engineering lint: 0 error, 0 warning
 ```
+
+## 领域无关与 Agent 自主管理追问
+
+公开手册复核发现，长期目标用户示例仍使用“AI 自媒体”，并要求用户在提示词中写“请一步一步问我／一次只问一个问题”。这会把内置 AI 演示误解为产品领域边界，也把本应由 Agent 承担的交互责任转嫁给普通用户。
+
+新增确定性 RED 用例后完成以下修正：
+
+- 明确内置 AI 文章只用于首次演示，正式文章反馈不限定主题；
+- README、仓库中文手册、Skill 使用示例与布丁手册改为领域无关入口；
+- 使用学生、家长、老师和美妆消费者说明长期目标用户可以来自任意业务；
+- 普通用户只描述“我主要提供什么、希望帮助谁”，Agent 自动一次确认一个会改变分层的关键问题；
+- 删除所有要求用户在提示词中规定提问节奏的示例。
+
+正式 Skill 通过 Skill Engineering 不可变维护计划应用：
+
+- plan：`improve-20260816232152-d5611946`；
+- plan hash：`3fbdade0f33d555c30f08d77d18d87301f372445355107ef6ef266f075071e6c`；
+- maintenance record：`maintenance-20260816232200-c7f62e38`；
+- 修改 1 个 Skill 文件，删除 0 个文件，preflight、postflight、自动 verify 均为 100/A。

@@ -11,6 +11,8 @@
 ## Global Constraints
 
 - 普通用户只需用自然语言说明业务、目标用户和待反馈内容。
+- 内置 AI 文章只作为首次演示；公开入口不得把长期目标用户限定为 AI 自媒体。
+- 一次一个关键问题属于 Agent 交互契约，不能要求用户在提示词中声明。
 - 普通用户默认只看到“内置示例用户 / 我的长期目标用户 / 本次特殊用户 / 参与本次反馈的用户 / 模拟目标用户反馈”。
 - 主手册和普通用户示例不主动展示 `Persona`、`Panel`、`Audience Workspace`、`Preview`、`Apply`、计划哈希、内部 ID、路径、schema、manifest 或 worker。
 - 仓库名和安装名继续使用 `user-review`；底层 CLI、schema 和现有私人数据保持兼容。
@@ -25,6 +27,7 @@
 ## File Map
 
 - `tests/test_user_review_natural_language_ux.py`：普通用户词汇、五步顺序、开发者分层和用户可见标题的确定性契约。
+- 同一测试增加领域无关与 Agent-owned questioning 契约：公开提示词不含“请一步一步问我／一次只问一个问题”，手册明确 AI 仅为演示并覆盖学生、老师、美妆等例子。
 - `skills/user-review/SKILL.md`：自然语言路由、普通用户反馈工作流、技术详情按需展开。
 - `skills/user-review/references/onboarding.md`：一次一个问题的长期目标用户创建与修改对话。
 - `skills/user-review/references/usage-examples.md`：五步自然语言示例。

@@ -57,6 +57,29 @@ class NaturalLanguageUxContractTests(unittest.TestCase):
             self.assertIn(f"`{heading}`", root)
         self.assertIn("用户不需要在提示词里指定这些栏目", root)
 
+    def test_beginner_prompts_are_domain_agnostic_and_agent_owns_questioning(self):
+        surfaces = [
+            ROOT / "README.md",
+            ROOT / "docs" / "user-guide.zh-CN.md",
+            SKILL / "references" / "usage-examples.md",
+        ]
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in surfaces)
+        for user_prompt_leak in [
+            "请一步一步问我",
+            "一次只问一个问题",
+            "继续一次只问一个关键问题",
+            "请和我一起调整，一次只问一个关键问题",
+        ]:
+            self.assertNotIn(user_prompt_leak, combined)
+
+        guide = (ROOT / "docs" / "user-guide.zh-CN.md").read_text(encoding="utf-8")
+        self.assertIn("内置演示选择的是 AI 文章", guide)
+        for example in ["学生", "老师", "美妆"]:
+            self.assertIn(example, guide)
+
+        root = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("一次只问一个会改变用户分层的问题", root)
+
 
 if __name__ == "__main__":
     unittest.main()
