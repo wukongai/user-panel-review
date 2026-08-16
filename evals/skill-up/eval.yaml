@@ -18,6 +18,7 @@ cases:
   files:
     - skill-up/cases/demo-article-preview.yaml
     - skill-up/cases/onboarding-boundary.yaml
+    - skill-up/cases/special-user-run-local.yaml
     - skill-up/cases/expert-review-rejection.yaml
   defaults:
     timeout_seconds: 600

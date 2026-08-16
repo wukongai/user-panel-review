@@ -22,7 +22,7 @@ graders:
     name: evidence-boundary-present
     config:
       regex_match:
-        - "AI Persona"
+        - "模拟目标用户反馈"
       regex_not_match:
         - "真实转化已验证"
 

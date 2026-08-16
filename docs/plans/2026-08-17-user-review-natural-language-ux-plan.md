@@ -323,8 +323,8 @@ expect:
 - [ ] **Step 3: 验证 Skill Up 配置**
 
 ```bash
-cd /private/tmp/skill-up-official-20260815
-go run ./cmd/skill-up validate /private/tmp/user-review-natural-language-candidate-20260817/evals/skill-up/eval.yaml
+/private/tmp/user-review-eval-tools-20260815/bin/skill-up validate \
+  /private/tmp/user-review-natural-language-candidate-20260817/evals/skill-up/eval.yaml
 ```
 
 Expected: validation success，4 cases loaded。
@@ -332,8 +332,8 @@ Expected: validation success，4 cases loaded。
 - [ ] **Step 4: 运行真实 Codex 行为评测**
 
 ```bash
-cd /private/tmp/skill-up-official-20260815
-go run ./cmd/skill-up run /private/tmp/user-review-natural-language-candidate-20260817/evals/skill-up/eval.yaml --format json
+/private/tmp/user-review-eval-tools-20260815/bin/skill-up run \
+  /private/tmp/user-review-natural-language-candidate-20260817/evals/skill-up/eval.yaml --format json
 ```
 
 Expected: 4/4 PASS；保存输出到隔离临时目录，只把脱敏摘要写入测试证据。
@@ -341,17 +341,19 @@ Expected: 4/4 PASS；保存输出到隔离临时目录，只把脱敏摘要写�
 - [ ] **Step 5: 运行 Waza mock 契约**
 
 ```bash
-cd /private/tmp/waza-official-20260815
-go run ./cmd/waza check /private/tmp/user-review-natural-language-candidate-20260817/skills/user-review --no-update-check
-go run ./cmd/waza run /private/tmp/user-review-natural-language-candidate-20260817/evals/user-review/eval.yaml --executor mock --output /private/tmp/user-review-natural-language-waza.json
+/private/tmp/user-review-eval-tools-20260815/bin/waza check \
+  /private/tmp/user-review-natural-language-candidate-20260817/skills/user-review --no-update-check
+/private/tmp/user-review-eval-tools-20260815/bin/waza run \
+  /private/tmp/user-review-natural-language-candidate-20260817/evals/user-review/eval.yaml \
+  --output /private/tmp/user-review-natural-language-waza.json --no-update-check
 ```
 
-Expected: readiness check 无阻断；mock 1/1 PASS。明确 mock 不代表真实 Agent 行为。
+Expected: Waza 显示 `ready for submission`，允许记录 token/module/body-structure advisory；mock 1/1 PASS。明确 mock 不代表真实 Agent 行为。
 
 - [ ] **Step 6: 提交行为评测**
 
 ```bash
-git add evals/skill-up evals/user-review docs/testing/2026-08-17-user-review-natural-language-e2e.md
+git add evals/skill-up evals/user-review docs/testing/2026-08-17-user-review-natural-language-e2e.md docs/plans/2026-08-17-user-review-natural-language-ux-plan.md
 git commit -m "test: evaluate beginner natural-language behavior"
 git tag candidate-user-review-evals
 ```

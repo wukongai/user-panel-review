@@ -38,3 +38,19 @@
 计划复核后补充的零门槛体验契约单独执行为 `1 failed in 0.02s`：安装包尚无 `assets/demo-article.md`，因此小白无法在没有自备文件时直接完成第二步体验。
 
 这些失败均由目标功能缺失造成，不是测试导入、语法或环境错误。实现前不得把此状态改写成通过。
+
+## 候选行为评测
+
+候选 Skill 使用固定的本地评测工具：Alibaba Skill Up `0.9.0`、Microsoft Waza `0.38.5`。本机 shell 没有 Go，因此没有临时下载或重新构建；直接使用上一轮已经固定的本地二进制。
+
+Skill Up 配置验证加载 4 个用例。首轮暴露两处 literal substring 误判：Agent 已执行“不保存、只问一个问题、确认后开始”，但没有逐字重复断言。读取完整响应后，把安全语义改为确定性正则和 `any` 授权词；没有放宽内部术语、真实效果或长期写入边界。
+
+最终同一轮真实 Codex 结果：
+
+```text
+Results: 4 passed, 0 failed, 0 errors
+```
+
+覆盖：内置示例体验、自然语言整理长期目标用户、本次特殊用户不长期保存、拒绝专家合规结论。
+
+Waza 检查结果为 `ready for submission`，Agent Skill 规范 9/9、链接 38/38、schema 通过；保留 token、模块数量和 body-structure advisory，不为静态启发式重复根入口。Waza mock 契约为 `1/1`、100%，只证明配置与确定性 grader 可执行，不代表真实 Agent 效用。

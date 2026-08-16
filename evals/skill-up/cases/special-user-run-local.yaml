@@ -1,0 +1,27 @@
+id: special-user-run-local
+title: 本次特殊用户默认不长期保存
+description: 验证一次性特殊受众只进入本次反馈，并在开始前等待确认。
+
+input:
+  prompt: |
+    使用 $user-review。这次反馈还要特别考虑“已经买过很多 AI 工具、但非常担心数据安全的人”。
+    只用于这一次，不要长期保存。请说明你会怎样处理，先不要开始反馈。
+
+expect:
+  must_contain:
+    - "本次"
+    - "长期"
+    - "确认"
+  must_not_contain:
+    - "Persona"
+    - "Workspace"
+    - "已经保存"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        all: ["本次", "长期", "确认"]
+        not: ["Persona", "Workspace", "已经保存"]
+    - output_matches:
+        all: ["(不.{0,12}(写入|修改|长期保存)|没有长期保存)"]

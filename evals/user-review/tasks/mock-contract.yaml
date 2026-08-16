@@ -1,15 +1,15 @@
 id: user-review-mock-contract
-name: User Review AI Persona Contract
+name: User Review Natural Language Contract
 description: 验证 Waza 能加载 Skill、任务、Prompt 和确定性 grader；mock 不代表真实 Agent 行为。
 tags: [contract, mock, no-credential]
 
 inputs:
-  prompt: "Use user-review as an AI Persona simulated focus group. Keep Audience Workspace data outside the Skill directory and do not claim real conversion validation."
+  prompt: "使用 user-review 通过自然语言提供模拟目标用户反馈。普通用户不需要理解内部数据结构，也不要声称真实转化已经验证。"
 
 expected:
   output_contains:
-    - "AI Persona"
-    - "Audience Workspace"
+    - "自然语言"
+    - "模拟目标用户反馈"
   outcomes:
     - type: task_completed
 
@@ -18,5 +18,5 @@ graders:
     type: code
     config:
       assertions:
-        - "'AI Persona' in output"
-        - "'Audience Workspace' in output"
+        - "'自然语言' in output"
+        - "'模拟目标用户反馈' in output"
