@@ -31,6 +31,7 @@
 - `skills/user-review/references/persona-governance.md`：把内部画像治理映射成用户可理解的确认语义。
 - `skills/user-review/agents/openai.yaml`：对外显示名、简介和默认提示。
 - `skills/user-review/assets/report-template.md`：用户可见报告标题和证据声明。
+- `skills/user-review/assets/demo-article.md`：安装后无需另找文件即可完成首次体验的虚构示例文章。
 - `README.md`：开源首页的价值、安装和五步快速体验。
 - `docs/user-guide.zh-CN.md`：完整小白手册正文，也是布丁文章正文事实源。
 - `docs/developer-guide.zh-CN.md`：命令、目录、数据结构、迁移和排障。
@@ -96,6 +97,11 @@ class NaturalLanguageUxContractTests(unittest.TestCase):
             self.assertIn(phrase, root)
         self.assertIn("只有用户明确要求开发、自动化、排障或审计", root)
 
+    def test_skill_includes_a_beginner_demo_article(self):
+        article = (SKILL / "assets" / "demo-article.md").read_text(encoding="utf-8")
+        self.assertIn("# ", article)
+        self.assertGreater(len(article), 300)
+
     def test_developer_details_live_in_separate_guide(self):
         guide = (ROOT / "docs" / "developer-guide.zh-CN.md").read_text(encoding="utf-8")
         for phrase in ["Audience Workspace", "Persona", "Panel", "prepare", "plan-sha256"]:
@@ -145,6 +151,7 @@ git commit -m "test: define natural-language user feedback contract"
 - Modify: `skills/user-review/references/persona-governance.md`
 - Modify: `skills/user-review/agents/openai.yaml`
 - Modify: `skills/user-review/assets/report-template.md`
+- Create: `skills/user-review/assets/demo-article.md`
 
 **Interfaces:**
 - Consumes: Task 1 的普通用户词汇契约；现有内部 CLI 和数据模型。
@@ -196,6 +203,8 @@ interface:
 
 报告模板标题改成 `# 模拟目标用户反馈`，声明改成“来自 AI 模拟目标用户，不是真实用户访谈、行为数据或转化预测”。
 
+新增 `assets/demo-article.md`，内容为虚构的 AI 工作流科普短文，不含外部链接、营销承诺、私人信息或可执行指令。用户未提供文章但要求“先试试”时，Agent 使用它；用户已有文章时优先使用用户内容。
+
 - [ ] **Step 5: 在候选仓库运行 Task 1 相关测试**
 
 ```bash
@@ -208,7 +217,7 @@ Expected: Skill 路由和报告标题测试 PASS；手册/开发者指南测试�
 - [ ] **Step 6: 只在候选仓库提交 Skill 用户层**
 
 ```bash
-git add skills/user-review/SKILL.md skills/user-review/references/onboarding.md skills/user-review/references/usage-examples.md skills/user-review/references/persona-governance.md skills/user-review/agents/openai.yaml skills/user-review/assets/report-template.md
+git add skills/user-review/SKILL.md skills/user-review/references/onboarding.md skills/user-review/references/usage-examples.md skills/user-review/references/persona-governance.md skills/user-review/agents/openai.yaml skills/user-review/assets/report-template.md skills/user-review/assets/demo-article.md
 git commit -m "feat: add natural-language user feedback interface"
 git tag candidate-user-review-skill
 ```

@@ -36,6 +36,11 @@ class NaturalLanguageUxContractTests(unittest.TestCase):
             self.assertIn(phrase, root)
         self.assertIn("只有用户明确要求开发、自动化、排障或审计", root)
 
+    def test_skill_includes_a_beginner_demo_article(self):
+        article = (SKILL / "assets" / "demo-article.md").read_text(encoding="utf-8")
+        self.assertIn("# ", article)
+        self.assertGreater(len(article), 300)
+
     def test_developer_details_live_in_separate_guide(self):
         guide = (ROOT / "docs" / "developer-guide.zh-CN.md").read_text(encoding="utf-8")
         for phrase in ["Audience Workspace", "Persona", "Panel", "prepare", "plan-sha256"]:
