@@ -92,3 +92,30 @@ Waza 检查结果为 `ready for submission`，Agent Skill 规范 9/9、链接 38
 定向回归由 `2 failed` 变为 `2 passed`。公开用例资产测试由 `3 failed` 变为 `3 passed`，覆盖五阶段转录脱敏、五张 PNG 可重复生成和中文手册嵌图。
 
 这些结果仍只证明结构、行为契约和一次隔离模拟可运行；不把 AI 模拟反馈声明为真实用户研究或下游商业效果。
+
+## 正式应用与本地发布门禁
+
+Skill Engineering 先生成被预检阻止的路径错误计划，未发生写入；随后以 Skill 包内正式契约重新生成有效 Preview：
+
+- plan：`improve-20260816221541-6e3ff58a`；
+- plan hash：`c3e917e43ecfc2408c5927f46c448726f64d9823db7748f27c7509971bb6c205`；
+- preflight：pass，0 finding；
+- deletions：0；
+- 根入口减少 4 行，description 减少 91 字，重复指令减少 4 行。
+
+Apply 只引用同一计划，生成维护记录 `maintenance-20260816221555-6d075fa3`；前后指纹与候选一致，postflight 与自动 verify 均通过，并保留本地回滚备份。
+
+在正式功能工作树重新运行完整门禁：
+
+```text
+pytest: 43 passed, 4 subtests passed
+unittest: 43 tests, OK
+Ruff: All checks passed
+Skill validation: valid, 8 personas, 2 content lines, 43 files
+gitleaks 8.30.1: 23 commits scanned, no leaks found
+git diff --check: exit 0
+Skill Engineering production Doctor: 100/A, 0 failure, 0 warning
+Skill Engineering lint: 0 error, 0 warning
+```
+
+Doctor 分数只表示静态结构准备度；真实 Agent 行为仍以 Skill Up 4/4 和本次连续用户体验作为不同层次的证据，二者都不证明真人效用。
