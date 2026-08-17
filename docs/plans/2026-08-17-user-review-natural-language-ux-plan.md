@@ -563,3 +563,47 @@ git push -u origin codex/user-review-natural-language-ux
 - 每个 Skill 行为修改先有失败测试；行为评测和静态文档契约分开。
 - 没有扩大内容适配器、Expert Review 或真实效果支持范围。
 - 所有动态维护标识都从同一计划的实际 JSON 输出读取，不依赖人工占位值。
+
+---
+
+### Task 8: 把公开截图替换为连续教育示例
+
+**Files:**
+- Modify: `tests/test_user_review_usecase_assets.py`
+- Modify: `docs/use-cases/user-review-first-run-transcript.json`
+- Modify: `docs/assets/user-review-first-run/02-customize.png`
+- Modify: `docs/assets/user-review-first-run/03-save.png`
+- Modify: `docs/assets/user-review-first-run/04-own-content.png`
+- Modify: `docs/assets/user-review-first-run/05-special-user.png`
+- Modify: `docs/user-guide.zh-CN.md`
+- Modify: `docs/testing/2026-08-17-user-review-natural-language-e2e.md`
+
+**Interfaces:**
+- Consumes: 远程 `main` 的 `user-review` Skill、既有截图渲染器和五阶段公开转录格式。
+- Produces: 第 1 张内置 AI 演示 + 第 2～5 张教育场景连续真实交互，以及 GitHub/布丁一致的公开手册。
+
+- [ ] **Step 1: 写入失败的公开用例契约测试**
+
+断言 `customize` 到 `special-user` 不含 AI 职场旧示例和用户规定提问节奏的文案；断言高中学生、家长、老师及临近高考特殊学生贯穿对应阶段。运行：
+
+```bash
+/Users/aim5/notebooklm-env/bin/pytest -q tests/test_user_review_usecase_assets.py
+```
+
+Expected: 旧转录因包含“普通职场人”“请一步一步问我”而失败。
+
+- [ ] **Step 2: 从远程 main 全新安装并完成真实教育会话**
+
+在新的 `/private/tmp` 隔离目录安装 `wukongai/user-review`，通过同一真实 Agent 会话依次完成：自然语言整理教育目标用户、修改候选、确认保存、反馈学习方法文章、增加只用于本次的高考焦虑学生。保存每轮原始最终输出，不人工补写报告。
+
+- [ ] **Step 3: 更新转录并渲染截图**
+
+将真实输出写入五阶段转录，第 1 张保持原内置示例，第 2～5 张替换为教育连续会话。运行渲染器与目标测试，Expected: 5 张 PNG 均生成且测试转绿。
+
+- [ ] **Step 4: 更新手册和测试证据**
+
+删除“截图选择 AI 职场内容”“用户主动指定结构”等前因后果，改为教育场景的简单操作说明；说明用户只需自然语言表达业务，提问节奏和默认反馈结构由 Skill 自动完成。
+
+- [ ] **Step 5: 完整门禁、远程与布丁交付**
+
+运行 pytest、Ruff、Skill validation、credential lint、Doctor 与 `git diff --check`；检查 5 张截图视觉结果。提交并推送功能分支和 `main`，把第 2～5 张上传为新的稳定媒体地址，同步同一正文到既有布丁页面并核验公开页面。

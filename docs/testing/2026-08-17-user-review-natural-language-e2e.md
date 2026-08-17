@@ -1,7 +1,7 @@
 # user-review 2.0 自然语言交互回归
 
 日期：2026-08-17  
-状态：候选回归完成，等待 Skill Engineering 应用与远程安装验证
+状态：正式回归完成
 
 ## 目标
 
@@ -57,16 +57,14 @@ Waza 检查结果为 `ready for submission`，Agent Skill 规范 9/9、链接 38
 
 ## 真实连续用户体验
 
-在独立临时项目中安装候选 Skill，并在同一个真实 Codex 会话中连续完成：
+公开证据来自两次独立安装后的真实 Codex 会话：第一次保留内置 AI 示例，第二次用同一条教育场景连续完成目标用户维护和内容反馈。教育会话中：
 
-1. 使用内置示例用户查看 Skill 自带示例文章；
-2. 用户确认后得到五部分模拟反馈；
-3. 通过一次一个问题整理自己的长期目标用户；
-4. 在保存前用自然语言纠正第二类用户并增加购买负责人；
-5. 明确确认后保存四类长期目标用户；
-6. 自动选择这四类用户反馈用户自己的虚构文章；
-7. 临时增加一位安全敏感用户，只补充差异反馈；
-8. 结束时再次确认长期目标用户仍只有原来的四类。
+1. 用户只说明自己为高中学生提供学习方法内容，也服务家长和老师，没有规定 Agent 怎样提问；
+2. Agent 自动确认业务主线，用户把学生修正为“懂方法但难坚持”和“临考、容易受快速提分承诺吸引”两类；
+3. 用户确认后保存两类核心学生、家长和老师四类长期目标用户；
+4. 同一批长期目标用户反馈虚构文章《三段十分钟学习法》，用户只说“确认开始，请反馈这篇文章”，Agent 自动输出默认五栏；
+5. 临时增加“临近高考、焦虑且寻找立刻提分办法的学生”，只补充差异反馈；
+6. 结束时确认临时用户没有保存，长期目标用户仍只有原来的四类。
 
 公开证据位于：
 
@@ -75,7 +73,7 @@ Waza 检查结果为 `ready for submission`，Agent Skill 规范 9/9、链接 38
 - `docs/assets/user-review-first-run/*.png`：五张自然语言交互长截图；
 - `docs/user-guide.zh-CN.md`：按安装、示例、定制、自己的内容、特殊用户顺序嵌入截图。
 
-公开用例不包含本机路径、运行标识、计划哈希、内部英文数据结构或后台命令。业务和文章均为公开演示用途的虚构内容。
+公开用例不包含本机路径、运行标识、计划哈希、内部英文数据结构或后台命令。业务和文章均为公开演示用途的虚构内容。`tests/test_user_review_usecase_assets.py` 新增连续教育场景契约，首次在旧 AI 职场转录上按预期失败，替换为真实教育转录后 `4 passed`。
 
 ## 真实体验发现与回归修复
 
@@ -163,3 +161,24 @@ Skill Engineering lint: 0 error, 0 warning
 - plan hash：`3fbdade0f33d555c30f08d77d18d87301f372445355107ef6ef266f075071e6c`；
 - maintenance record：`maintenance-20260816232200-c7f62e38`；
 - 修改 1 个 Skill 文件，删除 0 个文件，preflight、postflight、自动 verify 均为 100/A。
+
+## 连续教育示例与公开截图替换
+
+从远程 `main` 全新安装 `wukongai/user-review` 到独立临时项目，使用同一真实 Codex 会话完成教育目标用户定制、保存、文章反馈和本次特殊用户。第 2～5 张公开截图均来自该会话的最终回答；没有把 AI 职场旧文案改写成教育文案。第 1 张继续保留另一条真实隔离会话中的内置 AI 演示，并在转录元数据中如实说明两次会话来源。
+
+新增公开用例契约后，旧转录首次运行结果为 `1 failed, 3 passed`，失败原因是仍包含“普通职场人”和用户自行规定提问节奏。替换为真实教育转录后，目标用例结果为 `4 passed`。
+
+最终发布门禁：
+
+```text
+pytest: 46 passed, 4 subtests passed
+unittest: 46 tests, OK
+Ruff: All checks passed
+Skill validation: valid, 8 personas, 2 content lines, 43 files
+gitleaks 8.30.1: no leaks found
+git diff --check: exit 0
+Skill Engineering production Doctor: 100/A, 0 failure, 0 warning
+Skill Engineering lint: 0 error, 0 warning
+```
+
+第 2～5 张图片先经过 Media Manager dry-run，再发布到独立的 `user-review-2.0-guide-education` OSS 目录，避免覆盖旧图产生缓存混淆。布丁 dry-run 正确识别同一篇手册和 5 张图片；Apply 阶段因目标 case 已发布而被服务端以 `CASE_PUBLISHED` 拒绝，服务端要求已发布内容只能在后台手工编辑。本次没有取消发布、复制新 case 或绕过发布保护。
